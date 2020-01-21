@@ -4,6 +4,7 @@
 
 import argparse
 import roamon_alert_watcher
+import roamon_alert_daemon
 import os
 import logging
 from pyfiglet import Figlet
@@ -22,19 +23,24 @@ file_path_contact_list = os.path.join(dir_path_data, "contact_list.json")
 f = Figlet(font='slant')
 print(f.renderText('roamon-alert'))
 
-watcher = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list)
 
 # getサブコマンドの実際の処理を記述するコールバック関数
 def command_add(args):
     pass
 
+
 # 検証サブコマンド　checkのとき呼ばれる関数
 def command_list(args):
     pass
 
-def command_daemon(args):
 
-    watcher.start_daemon(file_path_contact_list, dir_path_data)
+def command_daemon(args):
+    alertd = roamon_alert_daemon.RoamonAlertDaemon("/var/run/alertd.pid")
+    alertd.init("/tmp/alertd.log", "/var/tmp", "/var/tmp/vrps.dat", "/var/tmp/rib.dat", "/var/tmp/contact_list.json")
+    alertd.start()
+
+    # watcher.start_daemon(file_path_contact_list, dir_path_data)
+
 
 def command_help(args):
     print(parser.parse_args([args.command, '--help']))
