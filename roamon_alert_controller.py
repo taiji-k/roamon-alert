@@ -36,10 +36,14 @@ def command_list(args):
 
 def command_daemon(args):
     alertd = roamon_alert_daemon.RoamonAlertDaemon("/var/run/alertd.pid")
-    alertd.init("/tmp/alertd.log", "/var/tmp", "/var/tmp/vrps.dat", "/var/tmp/rib.dat", "/var/tmp/contact_list.json")
-    alertd.start()
+    # 起動
+    if args.start:
+        alertd.init("/tmp/alertd.log", "/var/tmp", "/var/tmp/vrps.dat", "/var/tmp/rib.dat", "/var/tmp/contact_list.json")
+        alertd.start()
 
-    # watcher.start_daemon(file_path_contact_list, dir_path_data)
+    # 終了
+    if args.stop:
+        alertd.stop()
 
 
 def command_help(args):
@@ -53,9 +57,10 @@ subparsers = parser.add_subparsers()
 
 # get コマンドの parser を作成
 parser_add = subparsers.add_parser('add', help="see `get -h`. It's command to add contact info." )
-parser_add.add_argument('--asn', action='store_true', help='specify watch ASN')
-parser_add.add_argument('--type', default="mail", help='specify contact type')
-parser_add.add_argument('--dest', default="DUMMY_DEST", help='specify contact dest, such as e-mail address or Slack info')
+parser_add.add_argument('--asn', default="-1", help='specify watch ASN')
+parser_add.add_argument('--prefix', default="255.255.255.255", help='specify watch ip prefix')
+parser_add.add_argument('--type', default="email", help='specify contact type, such as email or slack.')
+parser_add.add_argument('--dest', default="DUMMY_DEST@example.com", help='specify contact dest, such as e-mail address or Slack info')
 # parser_add.add_argument('-p', '--path', default="/tmp", help='specify data dirctory')
 parser_add.set_defaults(handler=command_add)
 
@@ -63,7 +68,10 @@ parser_add.set_defaults(handler=command_add)
 parser_list = subparsers.add_parser('list', help="see `get -h`. It's command to list up contact info.")
 parser_list.set_defaults(handler=command_list)
 
+# daemonコマンドのパーサを作成
 parser_list = subparsers.add_parser('daemon', help="see `get -h`. It's command to control daemon.")
+parser_add.add_argument('--start', action='store_true', help='start daemon (DEFAULT)')
+parser_add.add_argument('--stop', action='store_true', help='stop daemon')
 parser_list.set_defaults(handler=command_daemon)
 
 # help コマンドの parser を作成
