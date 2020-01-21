@@ -16,29 +16,36 @@ logger = logging.getLogger(__name__)
 # ファイルの保存先
 dir_path_data = "/var/tmp"
 file_path_contact_list = os.path.join(dir_path_data, "contact_list.json")
-# file_path_vrps = os.path.join(dir_path_data, "asnip_vrps.dat")
-# file_path_rib = os.path.join(dir_path_data, "asnip.dat")
+file_path_vrps = os.path.join(dir_path_data, "vrps.dat")
+file_path_rib = os.path.join(dir_path_data, "rib.dat")
+log_path = "/tmp/alertd.log"
+
+pid_file_path = "/var/run/alertd.pid"
 
 # ロゴの描画
 f = Figlet(font='slant')
 print(f.renderText('roamon-alert'))
 
+checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_path_data, file_path_vrps, file_path_rib)
+checker.init()
 
 # getサブコマンドの実際の処理を記述するコールバック関数
 def command_add(args):
-    pass
+    checker.add_contact_info_to_list(asn=args.asn, prefix=args.prefix, contact_type=args.type, contact_info=args.dest)
+    # いちいち保存すると遅い？
+    checker.save_contact_list()
 
 
-# 検証サブコマンド　checkのとき呼ばれる関数
+# 連絡先のリストアップ
 def command_list(args):
-    pass
+    checker.print_conatct_lists()
 
 
+# デーモンの開始と終了
 def command_daemon(args):
-    alertd = roamon_alert_daemon.RoamonAlertDaemon("/var/run/alertd.pid")
+    alertd = roamon_alert_daemon.RoamonAlertDaemon(pid_file_path, log_path, checker)
     # 起動
     if args.start:
-        alertd.init("/tmp/alertd.log", "/var/tmp", "/var/tmp/vrps.dat", "/var/tmp/rib.dat", "/var/tmp/contact_list.json")
         alertd.start()
 
     # 終了
@@ -69,10 +76,10 @@ parser_list = subparsers.add_parser('list', help="see `get -h`. It's command to 
 parser_list.set_defaults(handler=command_list)
 
 # daemonコマンドのパーサを作成
-parser_list = subparsers.add_parser('daemon', help="see `get -h`. It's command to control daemon.")
-parser_add.add_argument('--start', action='store_true', help='start daemon (DEFAULT)')
-parser_add.add_argument('--stop', action='store_true', help='stop daemon')
-parser_list.set_defaults(handler=command_daemon)
+parser_daemon = subparsers.add_parser('daemon', help="see `get -h`. It's command to control daemon.")
+parser_daemon.add_argument('--start', action='store_true', help='start daemon (DEFAULT)')
+parser_daemon.add_argument('--stop', action='store_true', help='stop daemon')
+parser_daemon.set_defaults(handler=command_daemon)
 
 # help コマンドの parser を作成
 parser_help = subparsers.add_parser('help', help='see `help -h`')
