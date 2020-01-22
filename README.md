@@ -1,7 +1,7 @@
 # roamon-alert
 ## Current status
-動きはしますが、まだできていないという扱いです  
-一定期間でのデータのフェッチや、Prefix指定での監視などがまだ実装されてません
+動きはします  
+Prefix指定での監視などがまだ実装されてません
 
 ## Installation & quick start
 リポジトリのクローン
@@ -47,6 +47,8 @@ VMのなかで、別なシェルでroamon-alertのデーモンを起動します
 $ sudo python3 roamon_alert_controller.py add --asn 3333 --type email --dest example3333@example.com
 ```
 
+IP Prefixを指定し、それに関して異常があったときに通知する機能は未実装。
+
 ### 連絡先一覧
 登録された連絡先一覧を表示。  
 フォーマットは以下。  
@@ -66,10 +68,10 @@ $ sudo python3 roamon_alert_controller.py list
 $ sudo python3 roamon_alert_controller.py daemon --start 
 ```
 
-`/tmp/alertd.log`にログが出る。 現在は一定時間ごとに経路をチェックし、異常があれば対応する連絡先にメールやSlackを送る。  
+`/tmp/alertd.log`にログが出る。  
+1時間ごとにBGP経路情報(RouteViewsのRIBファイル)と検証済みROAをとってきて、中身をチェックする。 異常があれば対応する連絡先にメールやSlackを送る。  
  
- 将来的には...  次の機能を追加で実装したい。現状は上にあるようにすでに取得したデータに対してのチェックしかしない  
-「一定時間ごとにBGPの経路常用や、VRPs(検証済みROA)を取得してくる。  」
+
 
 ### デーモン停止
 ```

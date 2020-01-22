@@ -154,6 +154,7 @@ class RoamonAlertDaemon():
         self.__start_daemon_with_func(self.main_loop, logpath=self.log_file_path, pidpath=self.path_pid_lockfile, kws=None)
 
 
+    # TODO: デーモン停止時のPIDファイルの始末が正常にできているか確認 & 異常終了時のPIDファイルの始末はどうする？
     def stop(self):
         pid = daemon.pidfile.PIDLockFile(self.path_pid_lockfile)
         # 起動中?なら
