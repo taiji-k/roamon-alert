@@ -6,6 +6,7 @@ from roamon_diff import roamon_diff_checker
 from roamon_diff import roamon_diff_getter
 import os
 import logging
+import roamon_alert_slack
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -109,4 +110,5 @@ class RoamonAlertWatcher():
                 elif contact_info["type"] == "slack":
                     # TODO: Slack送信を実装
                     logger.debug("SEND SLACK MSG TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
+                    roamon_alert_slack.send_slack("ROA ERROR AT ASN{}".format(contact_info["asn"], contact_info["contact_info"] ))
         logger.debug("fin sending msg.")

@@ -13,6 +13,7 @@ tqdm = "*"
 requests = "*"
 beautifulsoup4 = "*"
 pyasn = "*"
+slackweb = "*"
 
 [requires]
 python_version = "3.7"
