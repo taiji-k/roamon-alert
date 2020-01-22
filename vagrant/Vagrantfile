@@ -63,24 +63,30 @@ Vagrant.configure("2") do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  config.vm.provision "shell", inline: <<-SHELL
+  # rootじゃなくてvagrantユーザで実行する必要がある(pipは各ユーザごとの場所にパッケージをインストールしようとするため) ...よね？
+  config.vm.provision "shell", privileged: false ,inline: <<-SHELL
 
 
-    apt update
-    apt install -y git python3 python3-pip wget sudo
+    sudo apt update
+    sudo apt install -y git python3.7 python3-pip wget sudo
     pip3 install netaddr pyfiglet tqdm pyasn beautifulsoup4 requests python-daemon slackweb
-    apt install -y \
+    # なぜかpipenvだとpyasnが依存関係解決できずにインストールできない。pip3だとできる
+    # たぶんpyasnが2017年製と古くてpythonの3.5ぐらいが対応範囲なのと関係ある...のか？
+    #pip3 install pipenv
+
+    # docker install
+    sudo apt install -y \
         apt-transport-https \
         ca-certificates \
         curl \
         software-properties-common
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-    add-apt-repository \
+    sudo add-apt-repository \
        "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
        $(lsb_release -cs) \
        stable"
-    apt update
-    apt install -y docker-ce
+    sudo apt update
+    sudo apt install -y docker-ce
 
     # docker compose install
     sudo curl -L "https://github.com/docker/compose/releases/download/1.25.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose

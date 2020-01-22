@@ -25,6 +25,7 @@ class RoamonAlertWatcher():
 
 
     def init(self):
+        logger.debug("watche　initiated.")
         # ファイルがない場合は話にならんので作る
         if not os.path.exists(self.vrps_file_path):
             self.fetch_vrps_data()
@@ -32,7 +33,8 @@ class RoamonAlertWatcher():
             self.fetch_rib_data()
         # 連絡先リストが存在しない場合、適当に作ってセーブ
         if not os.path.exists(self.contact_list_file_path):
-            self.contact_list = [].append(self.make_contact_info_entry(asn=1899, contact_type="email", contact_info="example1899@example.com") )
+            logger.debug("contact_list file is not exist! dummy contact info is created.")
+            self.contact_list = [ self.make_contact_info_entry(asn=1899, contact_type="email", contact_info="example1899@example.com") ]
             self.save_contact_list()
 
         self.load_all_data()
@@ -117,3 +119,5 @@ class RoamonAlertWatcher():
                     logger.debug("SEND SLACK MSG TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
                     roamon_alert_slack.send_slack("ROA ERROR AT ASN{}".format(contact_info["asn"], contact_info["contact_info"] ))
         logger.debug("fin sending msg.")
+
+

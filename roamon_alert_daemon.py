@@ -7,10 +7,12 @@ import roamon_alert_watcher
 import os
 import signal
 import daemon
+import daemon.pidfile
 import sys
 import logging
 import time
 from datetime import datetime, timedelta
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -147,6 +149,7 @@ class RoamonAlertDaemon():
         # 起動中?なら
         if pid.is_locked():
             os.kill(pid.pid, signal.SIGKILL)
+            os.remove(self.path_pid_lockfile)
 
 
 
