@@ -1,6 +1,5 @@
 # encoding: UTF-8
 
-import daemonize
 import json
 from roamon_diff import roamon_diff_checker
 from roamon_diff import roamon_diff_getter
@@ -28,9 +27,9 @@ class RoamonAlertWatcher():
     def init(self):
         # ファイルがない場合は話にならんので作る
         if not os.path.exists(self.vrps_file_path):
-            self.checker.fetch_vrps_data()
+            self.fetch_vrps_data()
         if not os.path.exists(self.rib_file_path):
-            self.checker.fetch_rib_data()
+            self.fetch_rib_data()
         # 連絡先リストが存在しない場合、適当に作ってセーブ
         if not os.path.exists(self.contact_list_file_path):
             self.contact_list = [].append(self.make_contact_info_entry(asn=1899, contact_type="email", contact_info="example1899@example.com") )
@@ -38,9 +37,10 @@ class RoamonAlertWatcher():
 
         self.load_all_data()
 
+
     # よく知らないがプログラム終了時に未開放のオブジェクトのデストラクタが呼ばれることは期待できない？
     def __del__(self):
-        if len(self.contact_list) > 0:
+        if self.contact_list is not None and (self.contact_list) > 0:
             self.save_contact_list()
 
 
