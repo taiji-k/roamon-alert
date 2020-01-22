@@ -1,5 +1,7 @@
 # roamon-alert
-動きはしますが、まだできていないという扱いです
+## Current status
+動きはしますが、まだできていないという扱いです  
+一定期間でのデータのフェッチや、Prefix指定での監視などがまだ実装されてません
 
 ## Installation & quick start
 リポジトリのクローン
@@ -14,7 +16,7 @@ $ cd roamon-alert/vagrant/
 $ vagrant up && vagrant ssh
 ```
 
-VMのなかでテスト用SMTPサーバを起動します。
+VMのなかでテスト用SMTPサーバを起動します。標準出力を見ていればメールが来たことがわかります。
 ```shell
 > $ cd roamon-alert
 > $ cd test/docker-mailhog
@@ -27,7 +29,16 @@ VMのなかで、別なシェルでroamon-alertのデーモンを起動します
 > $ sudo python3 roamon_alert_controller.py daemon --start
 ```
 
+## Files
+ファイルの場所などを記していきます。
 
+ * ワーキングディレクトリ(RIBファイルのダウンロード先などになる)：`/var/tmp`
+ * pyasnが直接読めるように変換後のBGP経路情報: `/var/tmp/rib.dat`
+ * pyasnが直接読めるように変換後の検証済みROAのリスト: `/var/tmp/vrps.dat`
+ * 連絡先情報のJSON: `/var/tmp/contact_list.json`
+ * デーモンのログファイル: `/tmp/alertd.log`
+ * デーモンのPIDファイル: `/var/run/alertd.py`
+ 
 ## Usage
 
 ### 連絡先追加
