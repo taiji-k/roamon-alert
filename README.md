@@ -1,6 +1,34 @@
 # roamon-alert
-## 使い方
-まだちゃんと使えるようにできてません。
+動きはしますが、まだできていないという扱いです
+
+## Installation & quick start
+リポジトリのクローン
+```shell
+$ git clone https://github.com/taiji-k/roamon-alert.git
+```
+
+VagrantでVMを起動します。  
+(`roamon-alert/vagrant/Vagrantfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので書き換えておいてください)
+```shell
+$ cd roamon-alert/vagrant/
+$ vagrant up && vagrant ssh
+```
+
+VMのなかでテスト用SMTPサーバを起動します。
+```shell
+> $ cd roamon-alert
+> $ cd test/docker-mailhog
+> $ sudo docker-compose up
+```
+
+VMのなかで、別なシェルでroamon-alertのデーモンを起動します
+```shell
+> $ cd roamon-alert
+> $ sudo python3 roamon_alert_controller.py daemon --start
+```
+
+
+## Usage
 
 ### 連絡先追加
 例として、ASN 3333に関して異常があったときにemailでexample3333@example.comに連絡を送るように登録する
