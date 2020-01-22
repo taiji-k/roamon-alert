@@ -104,12 +104,22 @@ class RoamonAlertDaemon():
 
         while 1:
             logger.debug("start loop")
-            # TODO: いい感じの間隔でデータのfetchとロード、チェックをするようにする
+            # TODO: やっつけ実装なので、一定間隔でこれらを実行するいい案を考える (非同期にするとそれはそれで面倒で、ダウンロード中や処理中のファイルを開こうとするときはやめてリトライとかする必要がありそう。でもそうすべきかなー)
 
+
+            # BGP経路情報とVRPのフェッチ
+            self.checker.fetch_rib_data()
+            self.checker.fetch_vrps_data()
+
+            # BGP経路情報とVRP,および連絡先情報をロードし直す
             self.checker.load_all_data()
+            # 異常がないかチェック
             self.checker.check_roa_with_all_watched_asn()
+
             logger.debug("end working in loop")
-            time.sleep(300)
+            # 一時間まつ
+            hours = 1
+            time.sleep(60 * 60 * hours)
             logger.debug("end loop")
 
             # # 現在時刻と次回起動時刻
