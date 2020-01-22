@@ -7,6 +7,8 @@ import slackweb
 
 def send_slack(text, url = 'https://slack.com/api/chat.postMessage'):
     # TODO: もっと凝ったメッセージを送る
+    # TODO: 送信失敗時のリトライの実装
+    # TODO: 送信に時間がかかった場合にそなえて非同期に送信する
     slackweb.Slack(url="https://hooks.slack.com/services/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").notify(text=text)
 
     # username = "roamon_notify"

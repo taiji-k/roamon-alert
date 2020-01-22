@@ -7,6 +7,7 @@ from roamon_diff import roamon_diff_getter
 import os
 import logging
 import roamon_alert_slack
+import roamon_alert_mail
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -100,12 +101,16 @@ class RoamonAlertWatcher():
         logger.debug("fin checking, start sending msg...")
         # with open("/var/tmp/temp_mail.log", "w") as f:
 
+        # ローカルで動かすSMTPサーバ、docker-mailhog用の設定。本来はSTMPサーバの設定を入れる
+        mailer = roamon_alert_mail.MailSender("localhost", 1025)
+
         for contact_info in self.contact_list:
             c_asn = int(contact_info["asn"])
             if not is_valid_list[c_asn]:
                 if contact_info["type"] == "email":
                     # TODO: メール送信を実装
                     logger.debug("SEND MAIL TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
+                    mailer.send_mail("example_jpnic@example.com", contact_info["contact_info"], "ROA ERRROR!", "ROA ERROR AT ASN{}".format(contact_info["asn"]))
                         #f.writelines("SEND MAIL TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
                 elif contact_info["type"] == "slack":
                     # TODO: Slack送信を実装
