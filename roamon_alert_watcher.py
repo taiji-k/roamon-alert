@@ -98,26 +98,43 @@ class RoamonAlertWatcher():
         logger.debug("start checking")
         watched_asn_list = [contact["asn"] for contact in self.contact_list]
         logger.debug("watched asn list {}".format(watched_asn_list))
-        is_valid_list = roamon_diff_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
-        logger.debug("checked list {}".format(is_valid_list))
+        rov_result = roamon_diff_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
+        logger.debug("checked list {}".format(rov_result))
         logger.debug("fin checking, start sending msg...")
         # with open("/var/tmp/temp_mail.log", "w") as f:
 
         # ローカルで動かすSMTPサーバ、docker-mailhog用の設定。本来はSTMPサーバの設定を入れる
         mailer = roamon_alert_mail.MailSender("localhost", 1025)
 
+        # そのASNが広告してたPrefixについて、一個でもROV失敗したものがあるかどうか調べる
+        is_failded_in_rov = {}
+        for asn, prefixes_results in rov_result.items():
+            is_failded_in_rov[asn] = False
+            for result in prefixes_results:
+                is_failed = (result != roamon_diff_checker.RovResult.VALID)
+                if is_failed:
+                    is_failded_in_rov[asn] = True
+                    break
+
+        def support_json_default(o):
+            if isinstance(o, roamon_diff_checker.RovResult):
+                return o.text
+            raise TypeError(repr(o) + " is not JSON serializable")
+
+
         for contact_info in self.contact_list:
             c_asn = int(contact_info["asn"])
-            if not is_valid_list[c_asn]:
+
+            if is_failded_in_rov[c_asn]:
                 if contact_info["type"] == "email":
                     # TODO: メール送信を実装
                     logger.debug("SEND MAIL TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
-                    mailer.send_mail("example_jpnic@example.com", contact_info["contact_info"], "ROA ERRROR!", "ROA ERROR AT ASN{}".format(contact_info["asn"]))
+                    mailer.send_mail("example_jpnic@example.com", contact_info["contact_info"], "ROA ERRROR!", "ROA ERROR AT ASN{}\n{}".format(contact_info["asn"], json.dumps(rov_result[c_asn], sort_keys=True, indent=4, default=support_json_default)))
                         #f.writelines("SEND MAIL TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
                 elif contact_info["type"] == "slack":
                     # TODO: Slack送信を実装
                     logger.debug("SEND SLACK MSG TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
-                    roamon_alert_slack.send_slack("ROA ERROR AT ASN{}".format(contact_info["asn"], contact_info["contact_info"] ))
+                    roamon_alert_slack.send_slack("ROA ERROR AT ASN{}\n{}".format(contact_info["asn"], json.dumps(rov_result[c_asn], sort_keys=True, indent=4, default=support_json_default)))
         logger.debug("fin sending msg.")
 
 
