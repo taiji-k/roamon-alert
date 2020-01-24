@@ -83,7 +83,6 @@ class RoamonAlertWatcher():
         with open(self.contact_list_file_path, "w") as f:
             json.dump(self.contact_list, f)
 
-
     def add_contact_info_to_list(self, asn = -1, prefix = "0.0.0.0/0", contact_type = "Default", contact_info = "Default"):
         # TODO: 同じ内容のやつがいくらでも入っちゃうので注意。監視対象(AS & Prefix)と連絡先(contact_info)を元にしたIDを割り振ることで対処する？
         self.contact_list.append(self.make_contact_info_entry(asn, prefix, contact_type, contact_info))
@@ -93,16 +92,18 @@ class RoamonAlertWatcher():
     def del_contact_info_from_list(s):
         pass
 
-    # 連絡先情報登録時に一緒に入れる、監視対象のASNに異常がないかみて、あるなら連絡する関数
+    # 連絡先情報登録時に一緒に入れる、監視対象のASNやPrefixに異常がないかみて、あるなら連絡する関数
     def check_roa_with_all_watched_asn(self):
         # watchされてる全てのASNとprefixをリストアップ
         logger.debug("start checking")
         watched_asn_list = [contact["asn"] for contact in self.contact_list]
         watched_prefix_list = [contact["prefix"] for contact in self.contact_list]
 
-        # watchしてるASN, prefixについて、それぞれが広告してる全てのprefixをROVする
+
         logger.debug("watched asn list {}".format(watched_asn_list))
+        # watchしてるASNについてそれぞれが広告してる全てのprefixをROVする
         rov_result_with_asn = roamon_diff_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
+        # watchしてるprefixについてROVする
         rov_result_with_prefix = roamon_diff_checker.check_specified_ips(self.vrps_data, self.rib_data,
                                                                          watched_prefix_list)
 
@@ -112,8 +113,8 @@ class RoamonAlertWatcher():
         # ローカルで動かすSMTPサーバ、docker-mailhog用の設定。本来はSTMPサーバの設定を入れる
         mailer = roamon_alert_mail.MailSender("localhost", 1025)
 
-        # ASが広告してるprefixたちが一個でもROVに失敗したかどうか調べる
-        #  (同じASについてwatchしてる人が多いと、同じASについてこれがたくさん実行され遅くなるので先にまとめてやっとく)
+        # ASについて、そのASが広告してるprefixたちが一個でもROVに失敗したかどうか調べる
+        #  (同じASについてwatchしてる人が多いと、同じASについてこの手順が何回も実行され遅くなるので先にまとめてやっとく)
         is_asn_having_prefix_failed_in_rov = {}
         for asn, prefixes_rov_results in rov_result_with_asn.items():
             is_asn_having_prefix_failed_in_rov[asn] = False
@@ -139,7 +140,7 @@ class RoamonAlertWatcher():
             # メール送信
             if contact_info["type"] == "email":
                 logger.debug(
-                    "SEND MAIL TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
+                    "SEND MAIL TO {} watching object: {}".format(contact_info["contact_info"], error_at))
                 mailer.send_mail("example_jpnic@example.com",
                                  contact_info["contact_info"],
                                  "ROA ERRROR!",
@@ -149,7 +150,7 @@ class RoamonAlertWatcher():
             # slack送信
             elif contact_info["type"] == "slack":
                 logger.debug(
-                    "SEND SLACK MSG TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
+                    "SEND SLACK MSG TO {} watching object: {}".format(contact_info["contact_info"], error_at))
                 roamon_alert_slack.send_slack("ROA ERROR AT {}\n{}".format(error_at,
                                                                               json.dumps(rov_result,
                                                                                          sort_keys=True, indent=4,
@@ -159,13 +160,13 @@ class RoamonAlertWatcher():
         for contact_info in self.contact_list:
             # まずASNからみる
             c_asn = int(contact_info["asn"])
-            # 今見てるASNが広告するprefixesが、一つでもROVに失敗している場合は、何らかの方法で通知する
+            # 今見てるASNが広告するprefixesが、一つでもROVに失敗している場合は、通知する
             if is_asn_having_prefix_failed_in_rov[c_asn]:
                 send_alert(contact_info, c_asn, rov_result_with_asn[c_asn])
 
             # 次にprefixを見る
             c_prefix = contact_info["prefix"]
-            # 今見てるprefixがROVに失敗している場合、連絡する
+            # 今見てるprefixがROVに失敗している場合、通知する
             is_failed = (rov_result_with_prefix[c_prefix] != roamon_diff_checker.RovResult.VALID)
             if is_failed:
                 send_alert(contact_info, c_prefix, rov_result_with_prefix[c_prefix])
