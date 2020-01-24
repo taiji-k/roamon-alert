@@ -95,10 +95,14 @@ class RoamonAlertWatcher():
 
     # TODO: IP Prefix　watchへの対応
     def check_roa_with_all_watched_asn(self):
+        # watchされてる全てのASNをリストアップ
         logger.debug("start checking")
         watched_asn_list = [contact["asn"] for contact in self.contact_list]
+
+        # watchしてるASNについて、それぞれが広告してる全てのprefixをROVする
         logger.debug("watched asn list {}".format(watched_asn_list))
         rov_result = roamon_diff_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
+
         logger.debug("checked list {}".format(rov_result))
         logger.debug("fin checking, start sending msg...")
         # with open("/var/tmp/temp_mail.log", "w") as f:
@@ -106,33 +110,38 @@ class RoamonAlertWatcher():
         # ローカルで動かすSMTPサーバ、docker-mailhog用の設定。本来はSTMPサーバの設定を入れる
         mailer = roamon_alert_mail.MailSender("localhost", 1025)
 
-        # そのASNが広告してたPrefixについて、一個でもROV失敗したものがあるかどうか調べる
-        is_failded_in_rov = {}
-        for asn, prefixes_results in rov_result.items():
-            is_failded_in_rov[asn] = False
-            for result in prefixes_results:
+        # ASが広告してるprefixたちが一個でもROVに失敗したかどうか調べる
+        is_asn_having_prefix_failed_in_rov = {}
+        for asn, prefixes_rov_results in rov_result.items():
+            is_asn_having_prefix_failed_in_rov[asn] = False
+            for result in prefixes_rov_results:
                 is_failed = (result != roamon_diff_checker.RovResult.VALID)
                 if is_failed:
-                    is_failded_in_rov[asn] = True
+                    is_asn_having_prefix_failed_in_rov[asn] = True
+                    # 一個でもROVに失敗したprefixがあるのがわかれば十分なので、そのASNについては調べるのを打ち切る
                     break
 
+        # JSON serializableでない列挙型をjson.dump可能にする関数。json.dumpの引数、"default"に渡す
         def support_json_default(o):
             if isinstance(o, roamon_diff_checker.RovResult):
                 return o.text
             raise TypeError(repr(o) + " is not JSON serializable")
 
-
+        # 連絡先を一つ一つ見ていき、watchしてるASNで異常がある場合は通知する
         for contact_info in self.contact_list:
             c_asn = int(contact_info["asn"])
 
-            if is_failded_in_rov[c_asn]:
+            # 今見てるASNが広告するprefixesが、一つでもROVに失敗している場合は、何らかの方法で通知する
+            if is_asn_having_prefix_failed_in_rov[c_asn]:
+                # メール送信
                 if contact_info["type"] == "email":
-                    # TODO: メール送信を実装
                     logger.debug("SEND MAIL TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
-                    mailer.send_mail("example_jpnic@example.com", contact_info["contact_info"], "ROA ERRROR!", "ROA ERROR AT ASN{}\n{}".format(contact_info["asn"], json.dumps(rov_result[c_asn], sort_keys=True, indent=4, default=support_json_default)))
-                        #f.writelines("SEND MAIL TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
+                    mailer.send_mail("example_jpnic@example.com",
+                                     contact_info["contact_info"],
+                                     "ROA ERRROR!",
+                                     "ROA ERROR AT ASN{}\n{}".format(contact_info["asn"], json.dumps(rov_result[c_asn], sort_keys=True, indent=4, default=support_json_default)))
+                # slack送信
                 elif contact_info["type"] == "slack":
-                    # TODO: Slack送信を実装
                     logger.debug("SEND SLACK MSG TO {} watching ASN: {}".format(contact_info["contact_info"], contact_info["asn"]))
                     roamon_alert_slack.send_slack("ROA ERROR AT ASN{}\n{}".format(contact_info["asn"], json.dumps(rov_result[c_asn], sort_keys=True, indent=4, default=support_json_default)))
         logger.debug("fin sending msg.")
