@@ -1,7 +1,6 @@
 # roamon-alert
 ## Current status
 動きはします  
-Prefix指定での監視などがまだ実装されてません
 
 ## Installation & quick start
 リポジトリのクローン
@@ -69,7 +68,8 @@ $ sudo python3 roamon_alert_controller.py daemon --start
 ```
 
 `/tmp/alertd.log`にログが出る。  
-1時間ごとにBGP経路情報(RouteViewsのRIBファイル)と検証済みROAをとってきて、中身をチェックする。 異常があれば対応する連絡先にメールやSlackを送る。  
+1時間ごとにBGP経路情報(RouteViewsのRIBファイル)と検証済みROAをとってきて、中身をチェックする。  
+連絡先登録時に一緒にいれたASNやprefixに関して異常があれば対応する連絡先にメールやSlackを送る。  
  
 
 
