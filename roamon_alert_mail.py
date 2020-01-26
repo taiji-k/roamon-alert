@@ -2,6 +2,7 @@
 
 import smtplib
 from email.mime.text import MIMEText
+import asyncio
 
 class MailSender():
     def __init__(self, smtp_host, smtp_port):
@@ -10,15 +11,23 @@ class MailSender():
 
 
     # TODO: 送信失敗時のリトライ
-    # TODO: 非同期に送信 (送信に時間がかかった場合、後続の処理も遅れる)
     def send_mail(self, fromaddr, toaddr, subject, msg):
 
-        m = MIMEText(msg)
-        m['Subject'] = subject
-        m['From'] = fromaddr
-        m['To'] = toaddr
+        async def worker():
+            m = MIMEText(msg)
+            m['Subject'] = subject
+            m['From'] = fromaddr
+            m['To'] = toaddr
 
-        s = smtplib.SMTP(host=self.smtp_host, port=self.smtp_port)
-        s.sendmail(fromaddr, toaddr, m.as_string())
-        s.close()
+            s = smtplib.SMTP(host=self.smtp_host, port=self.smtp_port)
+            s.sendmail(fromaddr, toaddr, m.as_string())
+            s.close()
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(worker())
+        # try:
+        #     loop.run_until_complete(worker())
+        # finally:
+        #     loop.close()
+
 

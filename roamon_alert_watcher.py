@@ -126,9 +126,6 @@ class RoamonAlertWatcher():
 
         self.contact_list = new_contact_list
 
-    # TODO: delete関数の実装
-    def del_contact_info_from_list(s):
-        pass
 
     # 連絡先情報登録時に一緒に入れる、監視対象のASNやPrefixに異常がないかみて、あるなら連絡する関数
     def check_roa_with_all_watched_asn(self):
