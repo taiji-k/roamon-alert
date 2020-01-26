@@ -156,12 +156,27 @@ class RoamonAlertDaemon():
 
     # TODO: デーモン停止時のPIDファイルの始末が正常にできているか確認 & 異常終了時のPIDファイルの始末はどうする？
     def stop(self):
+        # PIDファイルがあるかどうか見る
+        if not os.path.exists(self.path_pid_lockfile):
+            logger.error("PID file for the daemon is not found at {}".format(self.path_pid_lockfile))
+
+
         pid = daemon.pidfile.PIDLockFile(self.path_pid_lockfile)
-        # 起動中?なら
-        if pid.is_locked():
-            os.kill(pid.pid, signal.SIGKILL)
-            os.remove(self.path_pid_lockfile)
+        # 起動中判定はどうやるのか不明
+        # if pid.is_locked():
 
+        # デーモンのプロセスを終了させる
+        daemon_pid = pid.read_pid()
+        logger.debug("killing daemon process with PID:{}...".format(daemon_pid))
+        try:
+            os.kill(daemon_pid, signal.SIGTERM)
+        except ProcessLookupError:
+            # プロセスが動いてなかったらここでおしまい
+            logger.error("Process PID:{} is not running.".format(daemon_pid))
+            return
 
+        # PIDファイルを始末
+        logger.debug("releasing daemon process with PID file:{}...".format(self.path_pid_lockfile))
+        pid.break_lock()
 
 
