@@ -42,7 +42,7 @@ class RoamonAlertWatcher():
 
     # よく知らないがプログラム終了時に未開放のオブジェクトのデストラクタが呼ばれることは期待できない？
     def __del__(self):
-        if self.contact_list is not None and (self.contact_list) > 0:
+        if self.contact_list is not None and len(self.contact_list) > 0:
             self.save_contact_list()
 
 
@@ -87,6 +87,38 @@ class RoamonAlertWatcher():
         # TODO: 同じ内容のやつがいくらでも入っちゃうので注意。監視対象(AS & Prefix)と連絡先(contact_info)を元にしたIDを割り振ることで対処する？
         self.contact_list.append(self.make_contact_info_entry(asn, prefix, contact_type, contact_info))
         return
+
+
+    def delete_contact_info_from_list(self, asn=None, prefix=None, contact_type=None, contact_info=None):
+        target_dict = {"asn": asn, "prefix": prefix, "contact_type": contact_type, "contact_info": contact_info}
+        col_names = list(target_dict.keys())
+
+        # 削除すべき連絡先だけを省いてここに連絡先をコピーする
+        new_contact_list = []
+
+        for index, record in enumerate(self.contact_list):
+            delete_flag = False
+            # 列(asnとかprefixとか)の比較
+            for col_name in col_names:
+                # この関数の引数 (asn, prefix, ...) として渡される条件の指定はどれも任意なので渡されたかどうかを確認する必要がある
+                if target_dict[col_name] is not None:
+                    # 連絡先情報の特定の列が、指定されたものと一緒ならdeleteフラグをTrueにする
+                    if target_dict[col_name] == record[col_name]:
+                        delete_flag = True
+                    else:
+                        # この関数の引数 (asn, prefix, ...) はAND条件を指定している。
+                        # 一度deleteフラグが初期状態のFalseからTrueになって、再びFalseになるときは、一つでも条件に合致しなかった列があるということなので、ここで終了
+                        if delete_flag:
+                            delete_flag = False
+                            break
+
+            if not delete_flag:
+                logger.debug("delete: {}".format(record))
+                # ループの元となってるリストの要素をループ内で削除すると厄介なことになるので避ける
+                #  https://dev.classmethod.jp/beginners/python-delete-element-of-list/
+                new_contact_list.append(record)
+
+        self.contact_list = new_contact_list
 
     # TODO: delete関数の実装
     def del_contact_info_from_list(s):
