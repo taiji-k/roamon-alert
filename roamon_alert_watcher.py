@@ -7,6 +7,7 @@ import os
 import logging
 import roamon_alert_slack
 import roamon_alert_mail
+import atexit
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -22,6 +23,10 @@ class RoamonAlertWatcher():
         self.contact_list = []
         self.vrps_data = None
         self.rib_data = None
+
+        self.init()
+
+        atexit.register(self.save_contact_list)
 
 
     def init(self):
@@ -41,9 +46,9 @@ class RoamonAlertWatcher():
 
 
     # よく知らないがプログラム終了時に未開放のオブジェクトのデストラクタが呼ばれることは期待できない？
-    def __del__(self):
-        if self.contact_list is not None and len(self.contact_list) > 0:
-            self.save_contact_list()
+    # def __del__(self):
+    #     if self.contact_list is not None and len(self.contact_list) > 0:
+    #         self.save_contact_list()
 
 
     # roamon_diffの関数読んでるだけなんでなんとかしたい(roamon_diffをclass化してそっち呼ぶとか？)
@@ -90,7 +95,7 @@ class RoamonAlertWatcher():
 
 
     def delete_contact_info_from_list(self, asn=None, prefix=None, contact_type=None, contact_info=None):
-        target_dict = {"asn": asn, "prefix": prefix, "contact_type": contact_type, "contact_info": contact_info}
+        target_dict = {"asn": asn, "prefix": prefix, "type": contact_type, "contact_info": contact_info}
         col_names = list(target_dict.keys())
 
         # 削除すべき連絡先だけを省いてここに連絡先をコピーする
@@ -112,8 +117,9 @@ class RoamonAlertWatcher():
                             delete_flag = False
                             break
 
-            if not delete_flag:
+            if delete_flag:
                 logger.debug("delete: {}".format(record))
+            else:
                 # ループの元となってるリストの要素をループ内で削除すると厄介なことになるので避ける
                 #  https://dev.classmethod.jp/beginners/python-delete-element-of-list/
                 new_contact_list.append(record)
