@@ -27,11 +27,17 @@ f = Figlet(font='slant')
 print(f.renderText('roamon-alert'))
 
 checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_path_data, file_path_vrps, file_path_rib)
-checker.init()
+# checker.init()
 
 # getサブコマンドの実際の処理を記述するコールバック関数
 def command_add(args):
     checker.add_contact_info_to_list(asn=args.asn, prefix=args.prefix, contact_type=args.type, contact_info=args.dest)
+    # いちいち保存すると遅い？
+    checker.save_contact_list()
+
+
+def command_delete(args):
+    checker.delete_contact_info_from_list(asn=args.asn, prefix=args.prefix, contact_type=args.type, contact_info=args.dest)
     # いちいち保存すると遅い？
     checker.save_contact_list()
 
@@ -62,7 +68,7 @@ def command_help(args):
 parser = argparse.ArgumentParser(description='ROA - BGP Diff command !')
 subparsers = parser.add_subparsers()
 
-# get コマンドの parser を作成
+# add コマンドの parser を作成
 parser_add = subparsers.add_parser('add', help="see `get -h`. It's command to add contact info." )
 parser_add.add_argument('--asn', default="-1", help='specify watch ASN')
 parser_add.add_argument('--prefix', default="255.255.255.255", help='specify watch ip prefix')
@@ -70,6 +76,15 @@ parser_add.add_argument('--type', default="email", help='specify contact type, s
 parser_add.add_argument('--dest', default="DUMMY_DEST@example.com", help='specify contact dest, such as e-mail address or Slack info')
 # parser_add.add_argument('-p', '--path', default="/tmp", help='specify data dirctory')
 parser_add.set_defaults(handler=command_add)
+
+# delete コマンドの parser を作成
+parser_add = subparsers.add_parser('delete', help="see `get -h`. It's command to delete contact info." )
+parser_add.add_argument('--asn', default="-1", help='specify watch ASN')
+parser_add.add_argument('--prefix', default="255.255.255.255", help='specify watch ip prefix')
+parser_add.add_argument('--type', default="email", help='specify contact type, such as email or slack.')
+parser_add.add_argument('--dest', default="DUMMY_DEST@example.com", help='specify contact dest, such as e-mail address or Slack info')
+parser_add.set_defaults(handler=command_delete)
+
 
 # list コマンドの parser を作成
 parser_list = subparsers.add_parser('list', help="see `get -h`. It's command to list up contact info.")
