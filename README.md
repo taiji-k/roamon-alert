@@ -9,23 +9,25 @@ $ git clone https://github.com/taiji-k/roamon-alert.git
 ```
 
 VagrantでVMを起動します。  
-(`roamon-alert/vagrant/Vagrantfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので書き換えておいてください)
+(`roamon-alert/vagrant/Vagrantfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので **書き換えておいてください** )
 ```shell
 $ cd roamon-alert/vagrant/
 $ vagrant up && vagrant ssh
 ```
 
-VMのなかでテスト用SMTPサーバを起動します。標準出力を見ていればメールが来たことがわかります。
+VMのなかでテスト用SMTPサーバを起動します。  
+シェルを占有しちゃうのでtmuxとかで別な画面で起動するか、またはdocker-composeに`-d`オプションをつけデーモンモードで起動してください。  
+標準出力を見ていればメールが来たことがわかります。
 ```shell
 > $ cd roamon-alert
 > $ cd test/docker-mailhog
 > $ sudo docker-compose up
 ```
 
-VMのなかで、別なシェルでroamon-alertのデーモンを起動します
+VMのなかで、別なシェルでroamon-alertのデーモンを起動します  
 ```shell
 > $ cd roamon-alert
-> $ sudo python3 roamon_alert_controller.py daemon --start
+> $ sudo env "PATH=$PATH" python3 roamon_alert_controller.py daemon --start
 ```
 
 ## Files
