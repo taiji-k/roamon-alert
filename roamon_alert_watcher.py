@@ -147,9 +147,6 @@ class RoamonAlertWatcher():
         logger.debug("checked list {}".format(rov_result_with_asn))
         logger.debug("fin checking, start sending msg...")
 
-        # ローカルで動かすSMTPサーバ、docker-mailhog用の設定。本来はSTMPサーバの設定を入れる
-        mailer = roamon_alert_mail.MailSender("localhost", 1025)
-
         # ASについて、そのASが広告してるprefixたちが一個でもROVに失敗したかどうか調べる
         #  (同じASについてwatchしてる人が多いと、同じASについてこの手順が何回も実行され遅くなるので先にまとめてやっとく)
         is_asn_having_prefix_failed_in_rov = {}
@@ -178,7 +175,7 @@ class RoamonAlertWatcher():
             if contact_info["type"] == "email":
                 logger.debug(
                     "SEND MAIL TO {} watching object: {}".format(contact_info["contact_info"], error_at))
-                self.mailer.send_mail("example_jpnic@example.com",
+                self.mailer.send_mail(
                                  contact_info["contact_info"],
                                  "ROA ERRROR!",
                                  "ROA ERROR AT {}\n{}".format(error_at,

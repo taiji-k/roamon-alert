@@ -8,7 +8,7 @@ class MailSender():
     def __init__(self, smtp_host, smtp_port, sender_email_address):
         self.smtp_host = smtp_host
         self.smtp_port = int(smtp_port)
-        self.sender_mail_address = sender_email_address
+        self.sender_email_address = sender_email_address
 
 
     # TODO: 送信失敗時のリトライ
