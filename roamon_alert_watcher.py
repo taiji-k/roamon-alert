@@ -1,8 +1,8 @@
 # encoding: UTF-8
 
 import json
-from roamon_diff import roamon_diff_checker
-from roamon_diff import roamon_diff_getter
+from roamon_diff import roamon_verify_checker
+from roamon_diff import roamon_verify_getter
 import os
 import logging
 import roamon_alert_slack
@@ -55,17 +55,17 @@ class RoamonAlertWatcher():
 
     # roamon_diffの関数読んでるだけなんでなんとかしたい(roamon_diffをclass化してそっち呼ぶとか？)
     def fetch_rib_data(self):
-        roamon_diff_getter.fetch_rib_data(self.work_dir_path, self.rib_file_path)
+        roamon_verify_getter.fetch_rib_data(self.work_dir_path, self.rib_file_path)
 
 
     def fetch_vrps_data(self):
-        roamon_diff_getter.fetch_vrps_data(self.vrps_file_path)
+        roamon_verify_getter.fetch_vrps_data(self.vrps_file_path)
 
 
     def load_all_data(self):
         self.load_contact_list()
 
-        loaded_db = roamon_diff_checker.load_all_data(self.vrps_file_path, self.rib_file_path)
+        loaded_db = roamon_verify_checker.load_all_data(self.vrps_file_path, self.rib_file_path)
         self.vrps_data = loaded_db["vrps"]
         self.rib_data = loaded_db["rib"]
 
@@ -139,10 +139,10 @@ class RoamonAlertWatcher():
 
         logger.debug("watched asn list {}".format(watched_asn_list))
         # watchしてるASNについてそれぞれが広告してる全てのprefixをROVする
-        rov_result_with_asn = roamon_diff_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
+        rov_result_with_asn = roamon_verify_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
         # watchしてるprefixについてROVする
-        rov_result_with_prefix = roamon_diff_checker.check_specified_ips(self.vrps_data, self.rib_data,
-                                                                         watched_prefix_list)
+        rov_result_with_prefix = roamon_verify_checker.check_specified_ips(self.vrps_data, self.rib_data,
+                                                                           watched_prefix_list)
 
         logger.debug("checked list {}".format(rov_result_with_asn))
         logger.debug("fin checking, start sending msg...")
@@ -156,7 +156,7 @@ class RoamonAlertWatcher():
         for asn, prefixes_rov_results in rov_result_with_asn.items():
             is_asn_having_prefix_failed_in_rov[asn] = False
             for result in prefixes_rov_results:
-                is_failed = (result != roamon_diff_checker.RovResult.VALID)
+                is_failed = (result != roamon_verify_checker.RovResult.VALID)
                 if is_failed:
                     is_asn_having_prefix_failed_in_rov[asn] = True
                     # 一個でもROVに失敗したprefixがあるのがわかれば十分なので、そのASNについては調べるのを打ち切る
@@ -170,7 +170,7 @@ class RoamonAlertWatcher():
         def send_alert(contact_info, error_at, rov_result):
             # JSON serializableでない列挙型をjson.dump可能にする関数。json.dumpの引数、"default"に渡す
             def support_json_default(o):
-                if isinstance(o, roamon_diff_checker.RovResult):
+                if isinstance(o, roamon_verify_checker.RovResult):
                     return o.text
                 raise TypeError(repr(o) + " is not JSON serializable")
 
@@ -204,7 +204,7 @@ class RoamonAlertWatcher():
             # 次にprefixを見る
             c_prefix = contact_info["prefix"]
             # 今見てるprefixがROVに失敗している場合、通知する
-            is_failed = (rov_result_with_prefix[c_prefix] != roamon_diff_checker.RovResult.VALID)
+            is_failed = (rov_result_with_prefix[c_prefix] != roamon_verify_checker.RovResult.VALID)
             if is_failed:
                 send_alert(contact_info, c_prefix, rov_result_with_prefix[c_prefix])
 
