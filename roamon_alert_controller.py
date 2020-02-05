@@ -5,9 +5,11 @@
 import argparse
 import roamon_alert_watcher
 import roamon_alert_daemon
+import roamon_alert_mail
 import os
 import logging
 from pyfiglet import Figlet
+import configparser
 
 # ログ関係の設定 (適当)
 logging.basicConfig(level=logging.DEBUG)
@@ -30,11 +32,18 @@ log_path = config_roamon_alert["log_path"] # "/tmp/alertd.log"
 
 pid_file_path = config_roamon_alert["pid_file_path"]   # "/var/run/alertd.pid"
 
+smtp_server_address = config_roamon_alert["smtp_server_address"]
+smtp_server_port = int(config_roamon_alert["smtp_server_port"])
+sender_email_address = config_roamon_alert["sender_email_address"]
+
+watch_interval = int(config_roamon_alert["watch_interval"])
+
 # ロゴの描画
 f = Figlet(font='slant')
 print(f.renderText('roamon-alert'))
 
-checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_path_data, file_path_vrps, file_path_rib)
+mailer = roamon_alert_mail.MailSender(smtp_server_address, smtp_server_port, sender_email_address)
+checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_path_data, file_path_vrps, file_path_rib, mailer)
 # checker.init()
 
 # getサブコマンドの実際の処理を記述するコールバック関数
@@ -57,7 +66,7 @@ def command_list(args):
 
 # デーモンの開始と終了
 def command_daemon(args):
-    alertd = roamon_alert_daemon.RoamonAlertDaemon(pid_file_path, log_path, checker)
+    alertd = roamon_alert_daemon.RoamonAlertDaemon(pid_file_path, log_path, checker, watch_interval)
     # 起動
     if args.start:
         alertd.start()
