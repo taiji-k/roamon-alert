@@ -13,12 +13,14 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class RoamonAlertWatcher():
-    def __init__(self, file_path_contact_list, work_dir_path, vrps_file_path, rib_file_path):
+    def __init__(self, file_path_contact_list, work_dir_path, vrps_file_path, rib_file_path, mailer):
 
         self.contact_list_file_path = file_path_contact_list
         self.work_dir_path = work_dir_path
         self.vrps_file_path = vrps_file_path
         self.rib_file_path = rib_file_path
+
+        self.mailer = mailer
 
         self.contact_list = []
         self.vrps_data = None
@@ -176,7 +178,7 @@ class RoamonAlertWatcher():
             if contact_info["type"] == "email":
                 logger.debug(
                     "SEND MAIL TO {} watching object: {}".format(contact_info["contact_info"], error_at))
-                mailer.send_mail("example_jpnic@example.com",
+                self.mailer.send_mail("example_jpnic@example.com",
                                  contact_info["contact_info"],
                                  "ROA ERRROR!",
                                  "ROA ERROR AT {}\n{}".format(error_at,

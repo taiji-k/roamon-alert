@@ -19,17 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 class RoamonAlertDaemon():
-    def __init__(self, file_path_pid_lockfile, log_path, checker):
+    def __init__(self, file_path_pid_lockfile, log_path, checker, watch_interval):
         self.path_pid_lockfile = file_path_pid_lockfile
         self.log_file_path = log_path
         self.checker = checker
+        self.watch_interval = watch_interval # 分指定
 
         # self.work_dir_path = ""
         # self.vrps_file_path = ""
         # self.rib_file_path = ""
         # self.contact_list_file_path = ""
-
-
 
 
     # def init(self):
@@ -98,9 +97,9 @@ class RoamonAlertDaemon():
 
     def main_loop(self, kws=None):
         logger.debug("enter main_loop")
-        interval_min_fetch_rib = 60
-        interval_min_fetch_vrps = 60
-        interval_min_check_roa_with_wtached_asn = 10
+        # interval_min_fetch_rib = self.watch_interval
+        # interval_min_fetch_vrps = self.watch_interval
+        # interval_min_check_roa_with_wtached_asn = self.watch_interval
 
         while 1:
             logger.debug("start loop")
@@ -117,9 +116,9 @@ class RoamonAlertDaemon():
             self.checker.check_roa_with_all_watched_asn()
 
             logger.debug("end working in loop")
-            # 一時間まつ
-            hours = 1
-            time.sleep(60 * 60 * hours)
+
+            #　規定時間まつ
+            time.sleep(60 * self.watch_interval)
             logger.debug("end loop")
 
             # # 現在時刻と次回起動時刻
