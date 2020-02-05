@@ -13,14 +13,22 @@ from pyfiglet import Figlet
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# ファイルの保存先
-dir_path_data = "/var/tmp"
-file_path_contact_list = os.path.join(dir_path_data, "contact_list.json")
-file_path_vrps = os.path.join(dir_path_data, "vrps.dat")
-file_path_rib = os.path.join(dir_path_data, "rib.dat")
-log_path = "/tmp/alertd.log"
 
-pid_file_path = "/var/run/alertd.pid"
+# コンフィグファイルのロード
+config = configparser.ConfigParser()
+config.read('config.ini')
+config_roamon_diff = config["roamon-diff"]
+config_roamon_alert = config["roamon-alert"]
+
+# ファイルの保存先
+dir_path_data = config_roamon_diff["dir_path_data"]
+file_path_vrps = config_roamon_diff["file_path_vrps"]
+file_path_rib = config_roamon_diff["file_path_rib"]
+
+file_path_contact_list = config_roamon_alert["file_path_contact_list"]
+log_path = config_roamon_alert["log_path"] # "/tmp/alertd.log"
+
+pid_file_path = config_roamon_alert["pid_file_path"]   # "/var/run/alertd.pid"
 
 # ロゴの描画
 f = Figlet(font='slant')
