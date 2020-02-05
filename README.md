@@ -30,15 +30,21 @@ VMのなかで、別なシェルでroamon-alertのデーモンを起動します
 > $ sudo env "PATH=$PATH" python3 roamon_alert_controller.py daemon --start
 ```
 
-## Files
-ファイルの場所などを記していきます。
+## Configuration
+ファイルの場所やSMTPサーバのなどをコンフィグファイルに書きます
 
- * ワーキングディレクトリ(RIBファイルのダウンロード先などになる)：`/var/tmp`
- * pyasnが直接読めるように変換後のBGP経路情報: `/var/tmp/rib.dat`
- * pyasnが直接読めるように変換後の検証済みROAのリスト: `/var/tmp/vrps.dat`
- * 連絡先情報のJSON: `/var/tmp/contact_list.json`
- * デーモンのログファイル: `/tmp/alertd.log`
- * デーモンのPIDファイル: `/var/run/alertd.py`
+ * ワーキングディレクトリ(RIBファイルのダウンロード先などになる)：`dir_path_data`
+ * pyasnが直接読めるように変換後のBGP経路情報: `file_path_rib`
+ * pyasnが直接読めるように変換後の検証済みROAのリスト: `file_path_vrps`
+ 
+ * 連絡先情報のJSON: `file_path_contact_list`
+ * デーモンのログファイル: `log_path`
+ * デーモンのPIDファイル: `pid_file_path`
+ * SMTPサーバのアドレス: `smtp_server_address`
+ * SMTPサーバのポート番号: `smtp_server_port`
+ * 送信元メールアドレス: `sender_email_address`
+ * チェック間隔: `watch_interval`
+ 
  
 ## Usage
 
