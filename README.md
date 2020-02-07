@@ -8,6 +8,7 @@
 $ git clone https://github.com/taiji-k/roamon-alert.git
 ```
 
+### Run on Vagrant
 VagrantでVMを起動します。  
 (`roamon-alert/vagrant/Vagrantfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので **書き換えておいてください** )
 ```shell
@@ -29,6 +30,20 @@ VMのなかで、別なシェルでroamon-alertのデーモンを起動します
 > $ cd roamon-alert
 > $ sudo env "PATH=$PATH" python3 roamon_alert_controller.py daemon --start
 ```
+
+### Run on Docker
+Dockerを使って実行します  
+(`roamon-alert/docker/Dockerfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので **書き換えておいてください** )
+```
+$ sudo docker build -t roamon-alert ./docker
+$ sudo docker run --rm -it roamon-alert /bin/bash
+>$ cd /roamon-alert
+```
+
+注意点として、dockerコンテナの中からだとテスト用SMTPサーバのdockerコンテナを起動できないので、どうにかしてテスト用SMTPサーバを用意して通信できるようにしておく必要があります。
+(現状だと、異常検知していざ送信というときにSMTPサーバと通信できないと、もう一回データのダウンロードから始めようとしてしまいます)  
+(TODO: ここをどうにかする)  
+ 
 
 ## Configuration
 ファイルの場所やSMTPサーバのなどをコンフィグファイルに書きます
