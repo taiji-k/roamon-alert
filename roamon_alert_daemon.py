@@ -1,8 +1,8 @@
 # encoding: UTF-8
 
 import json
-from roamon_diff import roamon_diff_checker
-from roamon_diff import roamon_diff_getter
+from roamon_verify import roamon_verify_checker
+from roamon_verify import roamon_verify_getter
 import roamon_alert_watcher
 import os
 import signal
