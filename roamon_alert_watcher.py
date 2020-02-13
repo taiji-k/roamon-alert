@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class RoamonAlertWatcher():
-    def __init__(self, file_path_contact_list, work_dir_path, vrps_file_path, rib_file_path, mailer):
+    def __init__(self, file_path_contact_list, work_dir_path, vrps_file_path, rib_file_path, mailer, db_controller):
 
         self.contact_list_file_path = file_path_contact_list
         self.work_dir_path = work_dir_path
@@ -22,6 +22,7 @@ class RoamonAlertWatcher():
         self.rib_file_path = rib_file_path
 
         self.mailer = mailer
+        self.db_controller = db_controller
 
         self.contact_list = []
         self.vrps_data = None
@@ -146,13 +147,19 @@ class RoamonAlertWatcher():
                                                                                 watched_prefix_list)
 
         # -------DEBUG------
-        print("DEBUGGING DB")
-        db_controller = roamon_alert_db.RoamonAlertDb()
-        db_controller.connect("localhost", 5432, "postgres", "postgres", "mysecretpassword")
-        db_controller.init_table()
+        self.db_controller.connect()
+        self.db_controller.init_table()
         import datetime
-        db_controller.write_db_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), datetime.datetime.now())
-        print("OUT DEBUGGING DB")
+        data_fetched_time = datetime.datetime.now()  # これはデータ取得時にセットすべき
+        self.db_controller.write_db_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), data_fetched_time)
+        self.db_controller.disconnect()
+        # print("DEBUGGING DB")
+        # db_controller = roamon_alert_db.RoamonAlertDb()
+        # db_controller.connect("localhost", 5432, "postgres", "postgres", "mysecretpassword")
+        # db_controller.init_table()
+        # import datetime
+        # db_controller.write_db_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), datetime.datetime.now())
+        # print("OUT DEBUGGING DB")
         # ----^^^DEBUG^^^---
 
         logger.debug("checked list {}".format(asn_rov_result_struct_dict))

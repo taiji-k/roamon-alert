@@ -6,6 +6,7 @@ import argparse
 import roamon_alert_watcher
 import roamon_alert_daemon
 import roamon_alert_mail
+import roamon_alert_db
 import os
 import logging
 from pyfiglet import Figlet
@@ -32,18 +33,28 @@ log_path = config_roamon_alert["log_path"] # "/tmp/alertd.log"
 
 pid_file_path = config_roamon_alert["pid_file_path"]   # "/var/run/alertd.pid"
 
+# メール関連の設定
 smtp_server_address = config_roamon_alert["smtp_server_address"]
 smtp_server_port = int(config_roamon_alert["smtp_server_port"])
 sender_email_address = config_roamon_alert["sender_email_address"]
 
+# 監視間隔
 watch_interval = int(config_roamon_alert["watch_interval"])
+
+# DBの設定
+db_host = config_roamon_alert["db_host"]
+db_port = int(config_roamon_alert["db_port"])
+db_name = config_roamon_alert["db_name"]
+db_user_name = config_roamon_alert["db_user_name"]
+db_password = config_roamon_alert["db_password"]
 
 # ロゴの描画
 f = Figlet(font='slant')
 print(f.renderText('roamon-alert'))
 
 mailer = roamon_alert_mail.MailSender(smtp_server_address, smtp_server_port, sender_email_address)
-checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_path_data, file_path_vrps, file_path_rib, mailer)
+db_controller = roamon_alert_db.RoamonAlertDb(db_host, db_port, db_name, db_user_name, db_password)
+checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_path_data, file_path_vrps, file_path_rib, mailer, db_controller)
 # checker.init()
 
 # getサブコマンドの実際の処理を記述するコールバック関数

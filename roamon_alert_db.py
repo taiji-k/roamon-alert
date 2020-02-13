@@ -8,27 +8,27 @@ logger = logging.getLogger(__name__)
 
 
 class RoamonAlertDb():
-    def __init__(self):
-        self.host = None
-        self.port = None
-        self.username = None
-        self.password = None
-        self.dbname = None
+    def __init__(self, host, port, dbname, username, password):
+        self.host = host
+        self.port = port
+        self.dbname = dbname
+        self.username = username
+        self.password = password
+
 
         self.__rov_result_table_name = "rov_results"
 
         self.conn = None
 
-    def connect(self, host, port, dbname, username, password):
+    def connect(self):
         if self.conn is not None:
             self.conn.close()
 
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.dbname = dbname
         self.conn = psycopg2.connect(host=self.host, port=str(self.port), database=self.dbname, user=self.username, password=self.password)
+
+    def disconnect(self):
+        if self.conn is not None:
+            self.conn.close()
 
     def init_table(self):
         if self.conn.cursor() is None:
@@ -48,7 +48,7 @@ class RoamonAlertDb():
                   advertising_asn integer, 
                   rov_status varchar(32),
                   data_fetched_at timestamp,
-                  PRIMARY KEY (data_fetched_time, prefix)
+                  PRIMARY KEY (data_fetched_at, prefix)
                 );
             """, (
                 psycopg2.extensions.AsIs(self.__rov_result_table_name),
