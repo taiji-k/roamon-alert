@@ -8,6 +8,7 @@ import logging
 import roamon_alert_slack
 import roamon_alert_mail
 import atexit
+import roamon_alert_db
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -143,6 +144,16 @@ class RoamonAlertWatcher():
         # watchしてるprefixについてROVする
         prefix_rov_result_struct_dict = roamon_verify_checker.check_specified_prefixes(self.vrps_data, self.rib_data,
                                                                                 watched_prefix_list)
+
+        # -------DEBUG------
+        print("DEBUGGING DB")
+        db_controller = roamon_alert_db.RoamonAlertDb()
+        db_controller.connect("localhost", 5432, "postgres", "postgres", "mysecretpassword")
+        db_controller.init_table()
+        import datetime
+        db_controller.write_db_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), datetime.datetime.now())
+        print("OUT DEBUGGING DB")
+        # ----^^^DEBUG^^^---
 
         logger.debug("checked list {}".format(asn_rov_result_struct_dict))
         logger.debug("fin checking, start sending msg...")

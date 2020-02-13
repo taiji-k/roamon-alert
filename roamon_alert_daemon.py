@@ -106,7 +106,7 @@ class RoamonAlertDaemon():
             # TODO: やっつけ実装なので、一定間隔でこれらを実行するいい案を考える (非同期にするとそれはそれで面倒で、ダウンロード中や処理中のファイルを開こうとするときはやめてリトライとかする必要がありそう。でもそうすべきかなー)
 
 
-            # BGP経路情報とVRPのフェッチ
+            # # BGP経路情報とVRPのフェッチ
             self.checker.fetch_rib_data()
             self.checker.fetch_vrps_data()
 
