@@ -47,7 +47,7 @@ class RoamonAlertDb():
                   advertised_prefix  varchar(32),
                   advertising_asn integer, 
                   rov_status varchar(32),
-                  data_fetched_time timestamp,
+                  data_fetched_at timestamp,
                   PRIMARY KEY (data_fetched_time, prefix)
                 );
             """, (
