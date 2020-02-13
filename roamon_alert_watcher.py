@@ -139,32 +139,32 @@ class RoamonAlertWatcher():
 
         logger.debug("watched asn list {}".format(watched_asn_list))
         # watchしてるASNについてそれぞれが広告してる全てのprefixをROVする
-        rov_result_with_asn = roamon_verify_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
+        asn_rov_result_struct_dict = roamon_verify_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
         # watchしてるprefixについてROVする
-        rov_result_with_prefix = roamon_verify_checker.check_specified_ips(self.vrps_data, self.rib_data,
-                                                                           watched_prefix_list)
+        prefix_rov_result_struct_dict = roamon_verify_checker.check_specified_prefixes(self.vrps_data, self.rib_data,
+                                                                                watched_prefix_list)
 
-        logger.debug("checked list {}".format(rov_result_with_asn))
+        logger.debug("checked list {}".format(asn_rov_result_struct_dict))
         logger.debug("fin checking, start sending msg...")
 
-        # ASについて、そのASが広告してるprefixたちが一個でもROVに失敗したかどうか調べる
-        #  (同じASについてwatchしてる人が多いと、同じASについてこの手順が何回も実行され遅くなるので先にまとめてやっとく)
-        is_asn_having_prefix_failed_in_rov = {}
-        for asn, prefixes_rov_results in rov_result_with_asn.items():
-            is_asn_having_prefix_failed_in_rov[asn] = False
-            for result in prefixes_rov_results:
-                is_failed = (result != roamon_verify_checker.RovResult.VALID)
-                if is_failed:
-                    is_asn_having_prefix_failed_in_rov[asn] = True
-                    # 一個でもROVに失敗したprefixがあるのがわかれば十分なので、そのASNについては調べるのを打ち切る
-                    break
+        # # ASについて、そのASが広告してるprefixたちが一個でもROVに失敗したかどうか調べる
+        # #  (同じASについてwatchしてる人が多いと、同じASについてこの手順が何回も実行され遅くなるので先にまとめてやっとく)
+        # is_asn_having_prefix_failed_in_rov = {}
+        # for asn, prefixes_rov_results in asn_rov_result_struct_dict.items():
+        #     is_asn_having_prefix_failed_in_rov[asn] = False
+        #     for result in prefixes_rov_results:
+        #         is_failed = (result != roamon_verify_checker.RovResult.VALID)
+        #         if is_failed:
+        #             is_asn_having_prefix_failed_in_rov[asn] = True
+        #             # 一個でもROVに失敗したprefixがあるのがわかれば十分なので、そのASNについては調べるのを打ち切る
+        #             break
 
 
         # 異常検知メッセージを送信してくれる関数
         #  contact_info: 連絡先情報
         #  error_at    : エラーがでたASN or prefix
         #  rov_result  : ROVの結果
-        def send_alert(contact_info, error_at, rov_result):
+        def send_alert(contact_info, error_at, rov_result_dict):
             # JSON serializableでない列挙型をjson.dump可能にする関数。json.dumpの引数、"default"に渡す
             def support_json_default(o):
                 if isinstance(o, roamon_verify_checker.RovResult):
@@ -179,14 +179,14 @@ class RoamonAlertWatcher():
                                  contact_info["contact_info"],
                                  "ROA ERRROR!",
                                  "ROA ERROR AT {}\n{}".format(error_at,
-                                                                 json.dumps(rov_result, sort_keys=True,
+                                                                 json.dumps(rov_result_dict, sort_keys=True,
                                                                             indent=4, default=support_json_default)))
             # slack送信
             elif contact_info["type"] == "slack":
                 logger.debug(
                     "SEND SLACK MSG TO {} watching object: {}".format(contact_info["contact_info"], error_at))
                 roamon_alert_slack.send_slack("ROA ERROR AT {}\n{}".format(error_at,
-                                                                              json.dumps(rov_result,
+                                                                              json.dumps(rov_result_dict,
                                                                                          sort_keys=True, indent=4,
                                                                                          default=support_json_default)))
 
@@ -195,14 +195,14 @@ class RoamonAlertWatcher():
             # まずASNからみる
             c_asn = int(contact_info["asn"])
             # 今見てるASNが広告するprefixesが、一つでもROVに失敗している場合は、通知する
-            if is_asn_having_prefix_failed_in_rov[c_asn]:
-                send_alert(contact_info, c_asn, rov_result_with_asn[c_asn])
+            if asn_rov_result_struct_dict[c_asn].does_have_rov_failed_prefix():
+                send_alert(contact_info, c_asn, asn_rov_result_struct_dict[c_asn].to_dict())
 
             # 次にprefixを見る
             c_prefix = contact_info["prefix"]
             # 今見てるprefixがROVに失敗している場合、通知する
-            is_failed = (rov_result_with_prefix[c_prefix] != roamon_verify_checker.RovResult.VALID)
+            is_failed = (prefix_rov_result_struct_dict[c_prefix] != roamon_verify_checker.RovResult.VALID)
             if is_failed:
-                send_alert(contact_info, c_prefix, rov_result_with_prefix[c_prefix])
+                send_alert(contact_info, c_prefix, prefix_rov_result_struct_dict[c_prefix].to_dict())
 
         logger.debug("fin sending msg.")
