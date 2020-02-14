@@ -59,15 +59,11 @@ checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_pa
 
 # getサブコマンドの実際の処理を記述するコールバック関数
 def command_add(args):
-    checker.add_contact_info_to_list(asn=args.asn, prefix=args.prefix, contact_type=args.type, contact_info=args.dest)
-    # いちいち保存すると遅い？
-    checker.save_contact_list()
+    checker.add_contact_info_to_list(args.type, args.dest, args.prefixes, args.asns)
 
 
 def command_delete(args):
-    checker.delete_contact_info_from_list(asn=args.asn, prefix=args.prefix, contact_type=args.type, contact_info=args.dest)
-    # いちいち保存すると遅い？
-    checker.save_contact_list()
+    checker.delete_contact_info_from_list(args.type, args.dest, args.prefixes, args.asns)
 
 
 # 連絡先のリストアップ
@@ -98,8 +94,8 @@ subparsers = parser.add_subparsers()
 
 # add コマンドの parser を作成
 parser_add = subparsers.add_parser('add', help="see `get -h`. It's command to add contact info." )
-parser_add.add_argument('--asn', default="-1", help='specify watch ASN')
-parser_add.add_argument('--prefix', default="255.255.255.255", help='specify watch ip prefix')
+parser_add.add_argument('--asns', nargs="*", help='specify watch ASN')
+parser_add.add_argument('--prefixes', nargs="*", help='specify watch ip prefix')
 parser_add.add_argument('--type', default="email", help='specify contact type, such as email or slack.')
 parser_add.add_argument('--dest', default="DUMMY_DEST@example.com", help='specify contact dest, such as e-mail address or Slack info')
 # parser_add.add_argument('-p', '--path', default="/tmp", help='specify data dirctory')
@@ -107,8 +103,8 @@ parser_add.set_defaults(handler=command_add)
 
 # delete コマンドの parser を作成
 parser_add = subparsers.add_parser('delete', help="see `get -h`. It's command to delete contact info." )
-parser_add.add_argument('--asn', default="-1", help='specify watch ASN')
-parser_add.add_argument('--prefix', default="255.255.255.255", help='specify watch ip prefix')
+parser_add.add_argument('--asns', nargs="*", help='specify watch ASN')
+parser_add.add_argument('--prefixes', nargs="*", help='specify watch ip prefix')
 parser_add.add_argument('--type', default="email", help='specify contact type, such as email or slack.')
 parser_add.add_argument('--dest', default="DUMMY_DEST@example.com", help='specify contact dest, such as e-mail address or Slack info')
 parser_add.set_defaults(handler=command_delete)
