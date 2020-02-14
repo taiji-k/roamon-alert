@@ -151,14 +151,20 @@ class RoamonAlertWatcher():
         self.db_controller.init_table()
         import datetime
         data_fetched_time = datetime.datetime.now()  # これはデータ取得時にセットすべき
-        self.db_controller.write_db_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), data_fetched_time)
+        self.db_controller.write_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), data_fetched_time)
+
+        self.db_controller.write_contact_info("slack", "https://hooks.slack.com/services/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", ["192.168.30.0/24", "147.162.0.0/15"], [201354,137])
+        print("-----HOGEHOGOE1-----")
+        print(self.db_controller.pickup_rov_failed_contact_info_about_watched_prefix())
+        print(self.db_controller.pickup_rov_failed_contact_info_about_watched_asn())
+        print("-----HOGEHOGOE2-----")
         self.db_controller.disconnect()
         # print("DEBUGGING DB")
         # db_controller = roamon_alert_db.RoamonAlertDb()
         # db_controller.connect("localhost", 5432, "postgres", "postgres", "mysecretpassword")
         # db_controller.init_table()
         # import datetime
-        # db_controller.write_db_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), datetime.datetime.now())
+        # db_controller.write_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), datetime.datetime.now())
         # print("OUT DEBUGGING DB")
         # ----^^^DEBUG^^^---
 
