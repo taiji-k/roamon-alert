@@ -158,75 +158,53 @@ class RoamonAlertWatcher():
         print(self.db_controller.pickup_rov_failed_contact_info_about_watched_prefix())
         print(self.db_controller.pickup_rov_failed_contact_info_about_watched_asn())
         print("-----HOGEHOGOE2-----")
-        self.db_controller.disconnect()
-        # print("DEBUGGING DB")
-        # db_controller = roamon_alert_db.RoamonAlertDb()
-        # db_controller.connect("localhost", 5432, "postgres", "postgres", "mysecretpassword")
-        # db_controller.init_table()
-        # import datetime
-        # db_controller.write_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), datetime.datetime.now())
-        # print("OUT DEBUGGING DB")
+
         # ----^^^DEBUG^^^---
 
         logger.debug("checked list {}".format(asn_rov_result_struct_dict))
         logger.debug("fin checking, start sending msg...")
-
-        # # ASについて、そのASが広告してるprefixたちが一個でもROVに失敗したかどうか調べる
-        # #  (同じASについてwatchしてる人が多いと、同じASについてこの手順が何回も実行され遅くなるので先にまとめてやっとく)
-        # is_asn_having_prefix_failed_in_rov = {}
-        # for asn, prefixes_rov_results in asn_rov_result_struct_dict.items():
-        #     is_asn_having_prefix_failed_in_rov[asn] = False
-        #     for result in prefixes_rov_results:
-        #         is_failed = (result != roamon_verify_checker.RovResult.VALID)
-        #         if is_failed:
-        #             is_asn_having_prefix_failed_in_rov[asn] = True
-        #             # 一個でもROVに失敗したprefixがあるのがわかれば十分なので、そのASNについては調べるのを打ち切る
-        #             break
 
 
         # 異常検知メッセージを送信してくれる関数
         #  contact_info: 連絡先情報
         #  error_at    : エラーがでたASN or prefix
         #  rov_result  : ROVの結果
-        def send_alert(contact_info, error_at, rov_result_dict):
+        def send_alert(contact_type, contact_dest, rov_result_dict):
             # JSON serializableでない列挙型をjson.dump可能にする関数。json.dumpの引数、"default"に渡す
             def support_json_default(o):
                 if isinstance(o, roamon_verify_checker.RovResult):
                     return o.text
+                if isinstance(o, datetime.datetime):
+                    return o.__str__()
                 raise TypeError(repr(o) + " is not JSON serializable")
 
             # メール送信
-            if contact_info["type"] == "email":
+            if contact_type == "email":
                 logger.debug(
-                    "SEND MAIL TO {} watching object: {}".format(contact_info["contact_info"], error_at))
+                    "SEND MAIL TO {} watching object:".format(contact_dest))
                 self.mailer.send_mail(
-                                 contact_info["contact_info"],
+                                 contact_dest,
                                  "ROA ERRROR!",
-                                 "ROA ERROR AT {}\n{}".format(error_at,
-                                                                 json.dumps(rov_result_dict, sort_keys=True,
-                                                                            indent=4, default=support_json_default)))
+                                 "ROA ERROR \n{}".format(json.dumps(rov_result_dict, sort_keys=True, indent=4, default=support_json_default)))
             # slack送信
-            elif contact_info["type"] == "slack":
+            elif contact_type == "slack":
                 logger.debug(
-                    "SEND SLACK MSG TO {} watching object: {}".format(contact_info["contact_info"], error_at))
-                roamon_alert_slack.send_slack("ROA ERROR AT {}\n{}".format(error_at,
-                                                                              json.dumps(rov_result_dict,
-                                                                                         sort_keys=True, indent=4,
-                                                                                         default=support_json_default)))
+                    "SEND SLACK MSG TO {} watching object:".format(contact_dest))
+                roamon_alert_slack.send_slack("ROA ERROR \n{}".format(json.dumps(rov_result_dict,
+                                                                                         sort_keys=True, indent=4, default=support_json_default)))
 
-        # 連絡先を一つ一つ見ていき、watchしてるASN, prefixで異常がある場合は通知する
-        for contact_info in self.contact_list:
-            # まずASNからみる
-            c_asn = int(contact_info["asn"])
-            # 今見てるASNが広告するprefixesが、一つでもROVに失敗している場合は、通知する
-            if asn_rov_result_struct_dict[c_asn].does_have_rov_failed_prefix():
-                send_alert(contact_info, c_asn, asn_rov_result_struct_dict[c_asn].to_dict())
+        logger.debug("start sending msg about wtached prefix...")
+        rov_failed_entry_having_watched_prefix = self.db_controller.pickup_rov_failed_contact_info_about_watched_prefix()
+        logger.debug("SQL result : {}".format(rov_failed_entry_having_watched_prefix))
+        for contact_info, rov_info in rov_failed_entry_having_watched_prefix.items():
+            send_alert(contact_info[0], contact_info[1], rov_info)
 
-            # 次にprefixを見る
-            c_prefix = contact_info["prefix"]
-            # 今見てるprefixがROVに失敗している場合、通知する
-            is_failed = (prefix_rov_result_struct_dict[c_prefix] != roamon_verify_checker.RovResult.VALID)
-            if is_failed:
-                send_alert(contact_info, c_prefix, prefix_rov_result_struct_dict[c_prefix].to_dict())
+        logger.debug("start sending msg about wtached asn...")
+        rov_failed_entry_having_watched_asn = self.db_controller.pickup_rov_failed_contact_info_about_watched_asn()
+        for contact_info, rov_info in rov_failed_entry_having_watched_asn.items():
+            logger.debug("sending {} {} {}...".format(contact_info[0], contact_info[1],  rov_info))
+            send_alert(contact_info[0], contact_info[1], rov_info)
 
         logger.debug("fin sending msg.")
+
+        self.db_controller.disconnect()
