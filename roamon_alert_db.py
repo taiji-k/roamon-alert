@@ -9,8 +9,6 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-# TODO: SQLの改行の仕方がメチャクチャなので綺麗にする
-
 class RoamonAlertDb():
     def __init__(self, host, port, dbname, username, password):
         self.host = host
@@ -19,6 +17,7 @@ class RoamonAlertDb():
         self.username = username
         self.password = password
 
+        # テーブル名
         self.__rov_result_table_name = "rov_results"
         self.__contact_info_destination_table_name = "contact_informations"
         self.__contact_info_watched_prefix_table_name = "watched_prefixes"
@@ -26,8 +25,11 @@ class RoamonAlertDb():
 
         self.conn = None
 
+        # このクラスのインスタンスが破棄されるときに自動的にDBとの接続を切りたいが、
+        # psycopg2が `could not receive data from server: Bad file descriptor`とかいうエラーときどきだすのでやめていちいち切ることにした
         # atexit.register(self.disconnect)
 
+    # DBとの接続
     def connect(self):
         if self.conn is not None:
             self.conn.close()
@@ -35,10 +37,12 @@ class RoamonAlertDb():
         self.conn = psycopg2.connect(host=self.host, port=str(self.port), database=self.dbname, user=self.username,
                                      password=self.password)
 
+    # DBとの接続を切る
     def disconnect(self):
         if self.conn is not None:
             self.conn.close()
 
+    # DBにテーブルが用意されてない場合にそなえ、ROV結果を格納するテーブルを作成する
     def __init_rov_result_table(self, cursor):
         cursor.execute("select * from information_schema.tables where table_name=%s", (self.__rov_result_table_name,))
         does_exist_rov_result_table = bool(cursor.rowcount)
@@ -60,6 +64,7 @@ class RoamonAlertDb():
                 psycopg2.extensions.AsIs(self.__rov_result_table_name),
             ))
 
+    # DBにテーブルが用意されてない場合にそなえ、連絡先を格納するテーブルを作成する
     def __init_contact_list_tables(self, cursor):
         concatenation_column_name = "id"
 
@@ -106,6 +111,7 @@ class RoamonAlertDb():
             psycopg2.extensions.AsIs(concatenation_column_name),
         ))
 
+    # テーブル作成をする
     def init_table(self):
         if self.conn is None:
             logger.error("connection is not established")
@@ -119,6 +125,7 @@ class RoamonAlertDb():
         self.conn.commit()
         cur.close()
 
+    # ROVの結果をDBに書き込む
     def write_prefix_rov_result_structs(self, prefix_rov_result_struct_list, data_fetched_time):
         if self.conn is None:
             logger.error("connection is not established")
@@ -154,10 +161,11 @@ class RoamonAlertDb():
                 data_fetched_time
             ))
         logger.debug("finish write DB rov result")
-        # cur.fetchone()
+
         self.conn.commit()
         cur.close()
 
+    # 連絡先情報を全て取得する
     def get_all_contact_info(self):
         if self.conn is None:
             logger.error("connection is not established")
@@ -174,12 +182,12 @@ class RoamonAlertDb():
 
         sql_result = cur.fetchall()
 
-        # cur.fetchone()
         self.conn.commit()
         cur.close()
 
         return sql_result
 
+    # 連絡先情報を書き込む
     def write_contact_info(self, contact_type, contact_dest, watched_prefix_list, watched_asn_list):
         if self.conn is None:
             logger.error("connection is not established")
@@ -233,10 +241,10 @@ class RoamonAlertDb():
                 ))
 
         logger.debug("finish write contact info to DB")
-        # cur.fetchone()
         self.conn.commit()
         cur.close()
 
+    # 連絡先情報を削除
     def delete_contact_info(self, contact_type, contact_dest, delete_target_prefix_list=None,
                             delete_target_asn_list=None):
         if self.conn is None:
@@ -247,7 +255,14 @@ class RoamonAlertDb():
 
         # 削除する連絡先(contact_type, contact_dest)のIDを取得
         cur.execute("""
-            SELECT id FROM %s WHERE contact_type = %s AND contact_information = %s;
+            SELECT
+                id
+            FROM
+                %s
+            WHERE
+                contact_type = %s
+            AND contact_information = %s
+            ;
         """, (
             psycopg2.extensions.AsIs(self.__contact_info_destination_table_name),
             contact_type,
@@ -320,24 +335,43 @@ class RoamonAlertDb():
         self.conn.commit()
         cur.close()
 
+    # 登録されたwatched_prefixについて、ROV結果の中でROVに失敗(ステータスがVALID以外)してるレコードがないか調べ、
+    # あれば連絡先と失敗内容を返す
     def pickup_rov_failed_contact_info_about_watched_prefix(self):
         if self.conn is None:
             logger.error("connection is not established")
             return
 
-        # dict形式で返すようにする
+        # dict形式で返すようにする(意味あるか不明)
         cur = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        # さきほどの連絡先に振られたIDを取得
+        # watched_prefixとなってるprefixについて、最新のROV結果がVALID以外(=失敗)してるやつがないか調べ、連絡先情報と結合して返す
         cur.execute("""
-             SELECT * FROM %(tab_contact)s
-               INNER JOIN
-                 (SELECT * FROM %(tab_prefix)s
-                   INNER JOIN %(tab_rov_results)s
-                   ON %(tab_prefix)s.%(prefix_col_in_tab_prefix)s = %(tab_rov_results)s .%(prefix_col_in_tab_rov_results)s
-                    AND %(tab_rov_results)s.%(rov_result_col_in_tab_rov_results)s <> 'VALID'
-                   WHERE  %(tab_rov_results)s.%(timestamp_col_in_tab_rov_results)s = (SELECT max(%(timestamp_col_in_tab_rov_results)s) FROM  %(tab_rov_results)s)) AS %(tab_subquery_failed_rov_results)s
-                 ON %(tab_contact)s.%(key_col_in_tab_contact)s = %(tab_subquery_failed_rov_results)s.%(concat_key_col_in_tab_prefix)s;
+            SELECT
+                *
+            FROM
+                %(tab_contact)s
+                INNER JOIN
+                    (
+                        /* watched_prefix一覧のテーブルに含まれてるprefixに関して、ROV結果テーブルから探して、最新かつ結果がVALIDでないものをリストアップ*/
+                        SELECT
+                            *
+                        FROM
+                            %(tab_prefix)s
+                            INNER JOIN
+                                %(tab_rov_results)s
+                            ON  %(tab_prefix)s.%(prefix_col_in_tab_prefix)s = %(tab_rov_results)s.%(prefix_col_in_tab_rov_results)s
+                            AND %(tab_rov_results)s.%(rov_result_col_in_tab_rov_results)s <> 'VALID'
+                        WHERE
+                            %(tab_rov_results)s.%(timestamp_col_in_tab_rov_results)s = (
+                                SELECT
+                                    max(%(timestamp_col_in_tab_rov_results)s)
+                                FROM
+                                    %(tab_rov_results)s
+                            )
+                    ) AS %(tab_subquery_failed_rov_results)s
+                ON  %(tab_contact)s.%(key_col_in_tab_contact)s = %(tab_subquery_failed_rov_results)s.%(concat_key_col_in_tab_prefix)s
+            ;
          """, {
             "tab_contact": psycopg2.extensions.AsIs(self.__contact_info_destination_table_name),
             "tab_prefix": psycopg2.extensions.AsIs(self.__contact_info_watched_prefix_table_name),
@@ -353,11 +387,12 @@ class RoamonAlertDb():
 
         sql_result_dict = cur.fetchall()
 
-        logger.debug("finish write contact info to DB")
-        # cur.fetchone()
+        logger.debug("finish sql querying")
+
         self.conn.commit()
         cur.close()
 
+        # 連絡先と、そこに連絡すべき失敗内容のdictを作る
         result_dict = {}
         for row in sql_result_dict:
             contact_type = row[1]
@@ -366,8 +401,11 @@ class RoamonAlertDb():
             if contact_info not in result_dict:
                 result_dict[contact_info] = list()
             result_dict[contact_info].append(row)
+
         return result_dict
 
+    # 登録されたwatched_asnについて、ROV結果の中でROVに失敗(ステータスがVALID以外)してるレコードがないか調べ、
+    # あれば連絡先と失敗内容を返す
     def pickup_rov_failed_contact_info_about_watched_asn(self):
         if self.conn is None:
             logger.error("connection is not established")
@@ -376,16 +414,33 @@ class RoamonAlertDb():
         # dict形式で返すようにする
         cur = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        # さきほどの連絡先に振られたIDを取得
+        # watched_asnになってるasnについて、最新のROV結果がVALID以外(=失敗)してるやつがないか調べ、連絡先情報と結合して返す
         cur.execute("""
-              SELECT * FROM %(tab_contact)s
+            SELECT
+                *
+            FROM
+                %(tab_contact)s
                 INNER JOIN
-                  (SELECT * FROM %(tab_asn)s
-                    INNER JOIN %(tab_rov_results)s
-                    ON %(tab_asn)s.%(asn_col_in_tab_asn)s = %(tab_rov_results)s.%(asn_col_in_tab_rov_results)s
-                     AND %(tab_rov_results)s.%(rov_result_col_in_tab_rov_results)s <> 'VALID'
-                     WHERE  %(tab_rov_results)s.%(timestamp_col_in_tab_rov_results)s = (SELECT max(%(timestamp_col_in_tab_rov_results)s) FROM  %(tab_rov_results)s) ) AS %(tab_subquery_failed_rov_results)s
-                  ON %(tab_contact)s.%(key_col_in_tab_contact)s = %(tab_subquery_failed_rov_results)s.%(concat_key_col_in_tab_asn)s;
+                    (
+                        /* watched_asn一覧のテーブルに含まれてるasnに関して、ROV結果テーブルから探して、最新かつ結果がVALIDでないものをリストアップ*/
+                        SELECT
+                            *
+                        FROM
+                            %(tab_asn)s
+                            INNER JOIN
+                                %(tab_rov_results)s
+                            ON  %(tab_asn)s.%(asn_col_in_tab_asn)s = %(tab_rov_results)s.%(asn_col_in_tab_rov_results)s
+                            AND %(tab_rov_results)s.%(rov_result_col_in_tab_rov_results)s <> 'VALID'
+                        WHERE
+                            %(tab_rov_results)s.%(timestamp_col_in_tab_rov_results)s = (
+                                SELECT
+                                    max(%(timestamp_col_in_tab_rov_results)s)
+                                FROM
+                                    %(tab_rov_results)s
+                            )
+                    ) AS %(tab_subquery_failed_rov_results)s
+                ON  %(tab_contact)s.%(key_col_in_tab_contact)s = %(tab_subquery_failed_rov_results)s.%(concat_key_col_in_tab_asn)s
+            ;
           """, {
             "tab_contact": psycopg2.extensions.AsIs(self.__contact_info_destination_table_name),
             "tab_asn": psycopg2.extensions.AsIs(self.__contact_info_watched_asn_table_name),
@@ -402,10 +457,11 @@ class RoamonAlertDb():
         sql_result_dict = cur.fetchall()
 
         logger.debug("finish write contact info to DB")
-        # cur.fetchone()
+
         self.conn.commit()
         cur.close()
 
+        # 連絡先と、そこに連絡すべき失敗内容のdictを作る
         result_dict = {}
         for row in sql_result_dict:
             contact_type = row[1]

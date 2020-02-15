@@ -7,7 +7,6 @@ import roamon_alert_watcher
 import roamon_alert_daemon
 import roamon_alert_mail
 import roamon_alert_db
-import os
 import logging
 from pyfiglet import Figlet
 import configparser
@@ -27,8 +26,8 @@ dir_path_data = config_roamon_verify["dir_path_data"]
 file_path_vrps = config_roamon_verify["file_path_vrps"]
 file_path_rib = config_roamon_verify["file_path_rib"]
 
+# デーモンの設定
 log_path = config_roamon_alert["log_path"]  # "/tmp/alertd.log"
-
 pid_file_path = config_roamon_alert["pid_file_path"]  # "/var/run/alertd.pid"
 
 # メール関連の設定
@@ -56,9 +55,7 @@ watcher = roamon_alert_watcher.RoamonAlertWatcher(dir_path_data, file_path_vrps,
                                                   mailer, db_controller)
 
 
-# checker.init()
-
-# getサブコマンドの実際の処理を記述するコールバック関数
+# 連絡先追加の処理を記述するコールバック関数 (以下同じ)
 def command_add(args):
     watcher.add_contact_info_to_list(args.type, args.dest, args.prefixes, args.asns)
 
@@ -100,7 +97,6 @@ parser_add.add_argument('--prefixes', nargs="*", help='specify watch ip prefix')
 parser_add.add_argument('--type', default="email", help='specify contact type, such as email or slack.')
 parser_add.add_argument('--dest', default="DUMMY_DEST@example.com",
                         help='specify contact dest, such as e-mail address or Slack info')
-# parser_add.add_argument('-p', '--path', default="/tmp", help='specify data dirctory')
 parser_add.set_defaults(handler=command_add)
 
 # delete コマンドの parser を作成

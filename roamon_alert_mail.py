@@ -27,7 +27,3 @@ class MailSender():
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(worker())
-        # try:
-        #     loop.run_until_complete(worker())
-        # finally:
-        #     loop.close()

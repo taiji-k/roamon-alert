@@ -6,9 +6,6 @@ from roamon_verify import roamon_verify_getter
 import os
 import logging
 import roamon_alert_slack
-import roamon_alert_mail
-import atexit
-import roamon_alert_db
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -23,34 +20,39 @@ class RoamonAlertWatcher():
         self.mailer = mailer
         self.db_controller = db_controller
 
-        self.contact_list = []
         self.vrps_data = None
         self.rib_data = None
 
         self.init()
 
     def init(self):
+        # このインスタンスが破棄されるときにDBとの接続を自動で破棄したかったが...
+        # 別スレッドで動くデーモンに渡したりしたせいか、psycopg2が `could not receive data from server: Bad file descriptor`
+        # とかいうエラーときどきだすのでやめていちいち明示的に切ることにした
         # atexit.register(self.db_controller.disconnect)
 
         logger.debug("watche　initiated.")
-        # ファイルがない場合は話にならんので作る
+        # ファイルがない作る
         if not os.path.exists(self.vrps_file_path):
             self.fetch_vrps_data()
         if not os.path.exists(self.rib_file_path):
             self.fetch_rib_data()
-        # 連絡先リストが存在しない場合にそなえて、、適当に作る
+
+        # DBにテーブルを作成しておく
         self.db_controller.connect()
         self.db_controller.init_table()
-        # TODO: あとで消す
+        # 連絡先リストが存在しない場合にそなえて、適当にダミーの連絡先を作る
+        # TODO: これはデバッグ用。ダミーの連絡先が邪魔になるので本番では消すべき
         self.add_contact_info_to_list("email", "example1899@example.com", None, [1899])
         self.add_contact_info_to_list("email", "example137@example.com", ["147.162.0.0/15"], [137])
         self.add_contact_info_to_list("email", "example327687@example.com", ["192.168.30.0/24"], [327687])
-
+        self.add_contact_info_to_list("slack",
+                                      "https://hooks.slack.com/services/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",
+                                      ["192.168.30.0/24", "147.162.0.0/15"], [201354, 137])
         self.db_controller.disconnect()
 
         self.load_all_data()
 
-    # roamon_diffの関数読んでるだけなんでなんとかしたい(roamon_diffをclass化してそっち呼ぶとか？)
     def fetch_rib_data(self):
         roamon_verify_getter.fetch_rib_data(self.work_dir_path, self.rib_file_path)
 
@@ -63,6 +65,9 @@ class RoamonAlertWatcher():
         self.rib_data = loaded_db["rib"]
 
     def print_conatct_lists(self):
+        # いちいちDB接続 & 切断をしてるのはカッコわるいが、クラス作成時にDB接続して破棄時にDB切断だとうまくいかない
+        # psycopg2が `could not receive data from server: Bad file descriptor`とかエラー出す。たぶんデーモン起動時に別スレッドに渡したりするせい？
+        # だからいちいちDB接続 & 切断をしてる。
         self.db_controller.connect()
         print(json.dumps(self.db_controller.get_all_contact_info(), indent=4))
         self.db_controller.disconnect()
@@ -77,31 +82,25 @@ class RoamonAlertWatcher():
         self.db_controller.write_contact_info(contact_type, contact_info, prefixes, asns)
         self.db_controller.disconnect()
 
-    # 連絡先情報登録時に一緒に入れる、監視対象のASNやPrefixに異常がないかみて、あるなら連絡する関数
+    # ROVして、監視対象のprefixやASNに異常あったなら連絡する関数
     def check_roa_with_all_watched_asn(self):
-        # watchされてる全てのASNとprefixをリストアップ
         logger.debug("start checking")
-        # watched_asn_list = [contact["asn"] for contact in self.contact_list]
-        # watched_prefix_list = [contact["prefix"] for contact in self.contact_list]
 
-        # logger.debug("watched asn list {}".format(watched_asn_list))
-        # watchしてるASNについてそれぞれが広告してる全てのprefixをROVする
-        # asn_rov_result_struct_dict = roamon_verify_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
         # watchしてるprefixについてROVする
         prefix_rov_result_struct_dict = roamon_verify_checker.check_specified_prefixes(self.vrps_data, self.rib_data,
                                                                                        ["192.168.30.0/24",
                                                                                         "147.162.0.0/15"])
-        logger.debug("fin ROV ...")
-        # TODO: こちらに切り替える
+
+        # TODO: こちら(監視対象だけでなく全てのprefixをROVする)に切り替える
         # 全てのprefixについてROVする
         # prefix_rov_result_struct_dict = roamon_verify_checker.check_all_prefixes_in_vrps(self.vrps_data, self.rib_data)
 
-        # -------DEBUG------
-        logger.debug("INTO DB DEBUG")
-        self.db_controller.connect()
-        # self.db_controller.init_table()
+        logger.debug("fin ROV ...")
+        logger.debug("start writing ROV results to DB...")
 
-        logger.debug("WRITE DB ROV RESULTS")
+        # ROVの結果をDBに書き込む
+        self.db_controller.connect()
+        # TODO: データ取得時間は、データを本当に取得した時刻にセットすべき(まぁこれでもいいけど)
         import datetime
         data_fetched_time = datetime.datetime.now()  # これはデータ取得時にセットすべき
         try:
@@ -110,23 +109,19 @@ class RoamonAlertWatcher():
         except:
             import traceback
             traceback.print_exc()
-        logger.debug("WRITE DB DUMMY CONTACT INFO")
-        self.db_controller.write_contact_info("slack",
-                                              "https://hooks.slack.com/services/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",
-                                              ["192.168.30.0/24", "147.162.0.0/15"], [201354, 137])
-        print("-----HOGEHOGOE1-----")
-        print(self.db_controller.pickup_rov_failed_contact_info_about_watched_prefix())
-        print(self.db_controller.pickup_rov_failed_contact_info_about_watched_asn())
-        print("-----HOGEHOGOE2-----")
-        logger.debug("OUT DB DEBUG")
-        # ----^^^DEBUG^^^---
+
+        # DBの内容をデバッグのために出力する
+        logger.debug(" ---DB output--- START")
+        logger.debug("{}".format(self.db_controller.pickup_rov_failed_contact_info_about_watched_prefix()))
+        logger.debug(("{}".format(self.db_controller.pickup_rov_failed_contact_info_about_watched_asn())))
+        logger.debug(" ---DB output--- FIN")
 
         logger.debug("fin checking, start sending msg...")
 
         # 異常検知メッセージを送信してくれる関数
-        #  contact_info: 連絡先情報
-        #  error_at    : エラーがでたASN or prefix
-        #  rov_result  : ROVの結果
+        #  contact_type: 連絡先タイプ, emailとかslackとか
+        #  contact_dest: 連絡先。メールアドレスやslack webhook
+        #  rov_result_dict: ROVの結果
         def send_alert(contact_type, contact_dest, rov_result_dict):
             # JSON serializableでない列挙型をjson.dump可能にする関数。json.dumpの引数、"default"に渡す
             def support_json_default(o):
@@ -145,6 +140,7 @@ class RoamonAlertWatcher():
                     "ROA ERRROR!",
                     "ROA ERROR \n{}".format(
                         json.dumps(rov_result_dict, sort_keys=True, indent=4, default=support_json_default)))
+
             # slack送信
             elif contact_type == "slack":
                 logger.debug(
@@ -153,12 +149,14 @@ class RoamonAlertWatcher():
                                                                                  sort_keys=True, indent=4,
                                                                                  default=support_json_default)))
 
+        # watched_prefixについて、ROVの結果がVALIDじゃなかったものを調べて連絡先に通知する
         logger.debug("start sending msg about wtached prefix...")
         rov_failed_entry_having_watched_prefix = self.db_controller.pickup_rov_failed_contact_info_about_watched_prefix()
         logger.debug("SQL result : {}".format(rov_failed_entry_having_watched_prefix))
         for contact_info, rov_info in rov_failed_entry_having_watched_prefix.items():
             send_alert(contact_info[0], contact_info[1], rov_info)
 
+        # watched_asnについて、ROVの結果がVALIDじゃなかったものを調べて連絡先に通知する
         logger.debug("start sending msg about wtached asn...")
         rov_failed_entry_having_watched_asn = self.db_controller.pickup_rov_failed_contact_info_about_watched_asn()
         for contact_info, rov_info in rov_failed_entry_having_watched_asn.items():
@@ -167,5 +165,3 @@ class RoamonAlertWatcher():
 
         logger.debug("fin sending msg.")
         self.db_controller.disconnect()
-
-        # self.db_controller.disconnect()
