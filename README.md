@@ -1,6 +1,7 @@
 # roamon-alert
 ## Current status
 動きはします  
+あと昔のDB使ってない版とデータの構造が変わったため出力内容が変わりました  
 
 ## Installation & quick start
 リポジトリのクローン
@@ -8,42 +9,22 @@
 $ git clone https://github.com/taiji-k/roamon-alert.git
 ```
 
-### Run on Vagrant
-VagrantでVMを起動します。  
-(`roamon-alert/vagrant/Vagrantfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので **書き換えておいてください** )
-```shell
-$ cd roamon-alert/vagrant/
-$ vagrant up && vagrant ssh
-```
-
-VMのなかでテスト用SMTPサーバを起動します。  
-シェルを占有しちゃうのでtmuxとかで別な画面で起動するか、またはdocker-composeに`-d`オプションをつけデーモンモードで起動してください。  
-標準出力を見ていればメールが来たことがわかります。
-```shell
-> $ cd roamon-alert
-> $ cd test/docker-mailhog
-> $ sudo docker-compose up
-```
-
-VMのなかで、別なシェルでroamon-alertのデーモンを起動します  
-```shell
-> $ cd roamon-alert
-> $ sudo env "PATH=$PATH" python3 roamon_alert_controller.py daemon --start
-```
-
 ### Run on Docker
 Dockerを使って実行します  
 (`roamon-alert/docker/Dockerfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので **書き換えておいてください** )
 ```
-$ sudo docker build -t roamon-alert ./docker
-$ sudo docker run --rm -it roamon-alert /bin/bash
->$ cd /roamon-alert
+$ cd ./docker
+$ sudo docker-compose build --no-cache
+$ sudo docker-compose up
 ```
+DBサーバ、テスト用SMTPサーバ、roamon-alertを動かすサーバが起動します。  
+roamon-alertのサーバに接続してroamon-alertを使用しましょう。
 
-注意点として、dockerコンテナの中からだとテスト用SMTPサーバのdockerコンテナを起動できないので、どうにかしてテスト用SMTPサーバを用意して通信できるようにしておく必要があります。
-(現状だと、異常検知していざ送信というときにSMTPサーバと通信できないと、もう一回データのダウンロードから始めようとしてしまいます)  
-(TODO: ここをどうにかする)  
- 
+```
+$ sudo docker exec -it roamon-alert  /bin/bash
+> /# cd roamon-alert
+> /# 
+```
 
 ## Configuration
 ファイルの場所やSMTPサーバのなどをコンフィグファイルに書きます
@@ -52,7 +33,6 @@ $ sudo docker run --rm -it roamon-alert /bin/bash
  * pyasnが直接読めるように変換後のBGP経路情報: `file_path_rib`
  * pyasnが直接読めるように変換後の検証済みROAのリスト: `file_path_vrps`
  
- * 連絡先情報のJSON: `file_path_contact_list`
  * デーモンのログファイル: `log_path`
  * デーモンのPIDファイル: `pid_file_path`
  * SMTPサーバのアドレス: `smtp_server_address`
@@ -60,16 +40,20 @@ $ sudo docker run --rm -it roamon-alert /bin/bash
  * 送信元メールアドレス: `sender_email_address`
  * チェック間隔: `watch_interval`
  
+ * DBサーバホスト名: `db_host`
+ * DBサーバポート番号: `db_port`
+ * DB名: `db_name`
+ * DBユーザ名: `db_user_name`
+ * DBパスワード `db_password`
+ 
  
 ## Usage
 
 ### 連絡先追加
-例として、ASN 3333に関して異常があったときにemailでexample3333@example.comに連絡を送るように登録する
+例として、ASN 3333か1234に関して異常があったときにemailでexample3333@example.comに連絡を送るように登録する
 ```
-$ sudo python3 roamon_alert_controller.py add --asn 3333 --type email --dest example3333@example.com
+$ sudo python3 roamon_alert_controller.py add --asns 3333 1234 --type email --dest example3333@example.com
 ```
-
-IP Prefixを指定し、それに関して異常があったときに通知する機能は未実装。
 
 ### 連絡先一覧
 登録された連絡先一覧を表示。  
@@ -84,6 +68,9 @@ $ sudo python3 roamon_alert_controller.py list
 201354  192.168.30.0/24 email   example196615@example.com       
 135821  192.168.30.0/24 email   example327687@example.com   
 ```
+
+(NOTE: 上は過去のものであって現在はJSON形式で出ます & watched_prefixやasnが出ません.   
+TODO: ここの修正)
 
 ### デーモン起動
 ```
