@@ -27,7 +27,6 @@ dir_path_data = config_roamon_verify["dir_path_data"]
 file_path_vrps = config_roamon_verify["file_path_vrps"]
 file_path_rib = config_roamon_verify["file_path_rib"]
 
-file_path_contact_list = config_roamon_alert["file_path_contact_list"]
 log_path = config_roamon_alert["log_path"]  # "/tmp/alertd.log"
 
 pid_file_path = config_roamon_alert["pid_file_path"]  # "/var/run/alertd.pid"
@@ -53,7 +52,7 @@ print(f.renderText('roamon-alert'))
 
 mailer = roamon_alert_mail.MailSender(smtp_server_address, smtp_server_port, sender_email_address)
 db_controller = roamon_alert_db.RoamonAlertDb(db_host, db_port, db_name, db_user_name, db_password)
-checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_path_data, file_path_vrps, file_path_rib,
+watcher = roamon_alert_watcher.RoamonAlertWatcher(dir_path_data, file_path_vrps, file_path_rib,
                                                   mailer, db_controller)
 
 
@@ -61,21 +60,21 @@ checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_pa
 
 # getサブコマンドの実際の処理を記述するコールバック関数
 def command_add(args):
-    checker.add_contact_info_to_list(args.type, args.dest, args.prefixes, args.asns)
+    watcher.add_contact_info_to_list(args.type, args.dest, args.prefixes, args.asns)
 
 
 def command_delete(args):
-    checker.delete_contact_info_from_list(args.type, args.dest, args.prefixes, args.asns)
+    watcher.delete_contact_info_from_list(args.type, args.dest, args.prefixes, args.asns)
 
 
 # 連絡先のリストアップ
 def command_list(args):
-    checker.print_conatct_lists()
+    watcher.print_conatct_lists()
 
 
 # デーモンの開始と終了
 def command_daemon(args):
-    alertd = roamon_alert_daemon.RoamonAlertDaemon(pid_file_path, log_path, checker, watch_interval)
+    alertd = roamon_alert_daemon.RoamonAlertDaemon(pid_file_path, log_path, watcher, watch_interval)
     # 起動
     if args.start:
         alertd.start()

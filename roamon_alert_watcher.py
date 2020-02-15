@@ -15,9 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class RoamonAlertWatcher():
-    def __init__(self, file_path_contact_list, work_dir_path, vrps_file_path, rib_file_path, mailer, db_controller):
-
-        self.contact_list_file_path = file_path_contact_list
+    def __init__(self, work_dir_path, vrps_file_path, rib_file_path, mailer, db_controller):
         self.work_dir_path = work_dir_path
         self.vrps_file_path = vrps_file_path
         self.rib_file_path = rib_file_path
