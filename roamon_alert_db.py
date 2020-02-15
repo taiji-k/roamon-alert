@@ -8,7 +8,8 @@ import atexit
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-#TODO: SQLの改行の仕方がメチャクチャなので綺麗にする
+
+# TODO: SQLの改行の仕方がメチャクチャなので綺麗にする
 
 class RoamonAlertDb():
     def __init__(self, host, port, dbname, username, password):
@@ -18,7 +19,6 @@ class RoamonAlertDb():
         self.username = username
         self.password = password
 
-
         self.__rov_result_table_name = "rov_results"
         self.__contact_info_destination_table_name = "contact_informations"
         self.__contact_info_watched_prefix_table_name = "watched_prefixes"
@@ -26,13 +26,14 @@ class RoamonAlertDb():
 
         self.conn = None
 
-        #atexit.register(self.disconnect)
+        # atexit.register(self.disconnect)
 
     def connect(self):
         if self.conn is not None:
             self.conn.close()
 
-        self.conn = psycopg2.connect(host=self.host, port=str(self.port), database=self.dbname, user=self.username, password=self.password)
+        self.conn = psycopg2.connect(host=self.host, port=str(self.port), database=self.dbname, user=self.username,
+                                     password=self.password)
 
     def disconnect(self):
         if self.conn is not None:
@@ -42,8 +43,8 @@ class RoamonAlertDb():
         cursor.execute("select * from information_schema.tables where table_name=%s", (self.__rov_result_table_name,))
         does_exist_rov_result_table = bool(cursor.rowcount)
 
-        #TODO: prefixはIPv6が入るかもしれないが大丈夫か考える
-        #TODO: VARCHARのサイズを考える
+        # TODO: prefixはIPv6が入るかもしれないが大丈夫か考える
+        # TODO: VARCHARのサイズを考える
         if not does_exist_rov_result_table:
             logger.debug("Rov table is not exist. Create table...")
             cursor.execute("""
@@ -139,15 +140,16 @@ class RoamonAlertDb():
                 data_fetched_time
             ))
 
-
             cur.execute("""
                 INSERT INTO %s
                 VALUES (%s, %s, %s, %s, %s);
             """, (
                 psycopg2.extensions.AsIs(self.__rov_result_table_name),
                 prefix_rov_result_struct.roved_prefix,
-                prefix_rov_result_struct.matched_advertised_prefix if prefix_rov_result_struct.matched_advertised_prefix is not None else psycopg2.extensions.AsIs("NULL"),
-                prefix_rov_result_struct.advertising_asn if prefix_rov_result_struct.advertising_asn is not None else psycopg2.extensions.AsIs("NULL"),
+                prefix_rov_result_struct.matched_advertised_prefix if prefix_rov_result_struct.matched_advertised_prefix is not None else psycopg2.extensions.AsIs(
+                    "NULL"),
+                prefix_rov_result_struct.advertising_asn if prefix_rov_result_struct.advertising_asn is not None else psycopg2.extensions.AsIs(
+                    "NULL"),
                 str(prefix_rov_result_struct.rov_result),
                 data_fetched_time
             ))
@@ -178,8 +180,7 @@ class RoamonAlertDb():
 
         return sql_result
 
-
-    def write_contact_info(self,  contact_type, contact_dest, watched_prefix_list, watched_asn_list):
+    def write_contact_info(self, contact_type, contact_dest, watched_prefix_list, watched_asn_list):
         if self.conn is None:
             logger.error("connection is not established")
             return
@@ -236,7 +237,8 @@ class RoamonAlertDb():
         self.conn.commit()
         cur.close()
 
-    def delete_contact_info(self, contact_type, contact_dest, delete_target_prefix_list=None, delete_target_asn_list=None):
+    def delete_contact_info(self, contact_type, contact_dest, delete_target_prefix_list=None,
+                            delete_target_asn_list=None):
         if self.conn is None:
             logger.error("connection is not established")
             return
@@ -258,7 +260,6 @@ class RoamonAlertDb():
             return
         contact_information_id = int(sql_result_contact_information_id[0])
 
-
         # 指定されたprefixらをDELETE
         if delete_target_prefix_list is not None:
             for delete_target_prefix in delete_target_prefix_list:
@@ -271,7 +272,7 @@ class RoamonAlertDb():
                     contact_information_id,
                     psycopg2.extensions.AsIs("watched_prefix"),
                     delete_target_prefix
-            ))
+                ))
 
         # 指定されたASNらをDELETE
         if delete_target_asn_list is not None:
@@ -293,32 +294,31 @@ class RoamonAlertDb():
             UNION ALL
             SELECT * FROM %(tab_asn)s WHERE %(concat_key_col)s = %(target_id)s
         """,
-        {
-            "tab_asn": psycopg2.extensions.AsIs(self.__contact_info_watched_asn_table_name),
-            "tab_prefix": psycopg2.extensions.AsIs(self.__contact_info_watched_prefix_table_name),
-            "timestamp_col_in_tab_rov_results": psycopg2.extensions.AsIs("data_fetched_at"),
-            "concat_key_col": psycopg2.extensions.AsIs("contact_information_id"),
-            "target_id": contact_information_id
-        })
+                    {
+                        "tab_asn": psycopg2.extensions.AsIs(self.__contact_info_watched_asn_table_name),
+                        "tab_prefix": psycopg2.extensions.AsIs(self.__contact_info_watched_prefix_table_name),
+                        "timestamp_col_in_tab_rov_results": psycopg2.extensions.AsIs("data_fetched_at"),
+                        "concat_key_col": psycopg2.extensions.AsIs("contact_information_id"),
+                        "target_id": contact_information_id
+                    })
         count_len_watched_prefix_or_asn = len(cur.fetchall())
         does_have_watched_prefix_or_asn = count_len_watched_prefix_or_asn > 0
 
-        does_have_specified_target_prefix_or_asn_list = (delete_target_prefix_list is not None) or (delete_target_asn_list is not None)
+        does_have_specified_target_prefix_or_asn_list = (delete_target_prefix_list is not None) or (
+                delete_target_asn_list is not None)
 
         # 削除の結果、連絡先に関するwatched_prefixやwatched_asnが全くなくなった場合、または削除対象のwatched_prefixかasnが全く指定されてないとき、連絡先自体を削除する
         if (not does_have_watched_prefix_or_asn) or (not does_have_specified_target_prefix_or_asn_list):
             cur.execute("""
                 DELETE FROM %(tab_contacts)s WHERE id = %(target_id)s ;
             """,
-            {
-                "tab_contacts": psycopg2.extensions.AsIs(self.__contact_info_destination_table_name),
-                "target_id": contact_information_id
-            })
+                        {
+                            "tab_contacts": psycopg2.extensions.AsIs(self.__contact_info_destination_table_name),
+                            "target_id": contact_information_id
+                        })
 
         self.conn.commit()
         cur.close()
-
-
 
     def pickup_rov_failed_contact_info_about_watched_prefix(self):
         if self.conn is None:
@@ -345,7 +345,7 @@ class RoamonAlertDb():
             "tab_subquery_failed_rov_results": psycopg2.extensions.AsIs("failed_rov_results"),
             "prefix_col_in_tab_prefix": psycopg2.extensions.AsIs("watched_prefix"),
             "prefix_col_in_tab_rov_results": psycopg2.extensions.AsIs("prefix"),
-            "timestamp_col_in_tab_rov_results":  psycopg2.extensions.AsIs("data_fetched_at"),
+            "timestamp_col_in_tab_rov_results": psycopg2.extensions.AsIs("data_fetched_at"),
             "concat_key_col_in_tab_prefix": psycopg2.extensions.AsIs("contact_information_id"),
             "key_col_in_tab_contact": psycopg2.extensions.AsIs("id"),
             "rov_result_col_in_tab_rov_results": psycopg2.extensions.AsIs("rov_status"),
@@ -375,7 +375,6 @@ class RoamonAlertDb():
 
         # dict形式で返すようにする
         cur = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-
 
         # さきほどの連絡先に振られたIDを取得
         cur.execute("""
@@ -418,6 +417,3 @@ class RoamonAlertDb():
         return result_dict
 
         return result_dict
-
-
-

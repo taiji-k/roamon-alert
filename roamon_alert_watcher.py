@@ -13,6 +13,7 @@ import roamon_alert_db
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+
 class RoamonAlertWatcher():
     def __init__(self, file_path_contact_list, work_dir_path, vrps_file_path, rib_file_path, mailer, db_controller):
 
@@ -30,9 +31,8 @@ class RoamonAlertWatcher():
 
         self.init()
 
-
     def init(self):
-        #atexit.register(self.db_controller.disconnect)
+        # atexit.register(self.db_controller.disconnect)
 
         logger.debug("watche　initiated.")
         # ファイルがない場合は話にならんので作る
@@ -43,7 +43,7 @@ class RoamonAlertWatcher():
         # 連絡先リストが存在しない場合にそなえて、、適当に作る
         self.db_controller.connect()
         self.db_controller.init_table()
-        #TODO: あとで消す
+        # TODO: あとで消す
         self.add_contact_info_to_list("email", "example1899@example.com", None, [1899])
         self.add_contact_info_to_list("email", "example137@example.com", ["147.162.0.0/15"], [137])
         self.add_contact_info_to_list("email", "example327687@example.com", ["192.168.30.0/24"], [327687])
@@ -52,15 +52,12 @@ class RoamonAlertWatcher():
 
         self.load_all_data()
 
-
     # roamon_diffの関数読んでるだけなんでなんとかしたい(roamon_diffをclass化してそっち呼ぶとか？)
     def fetch_rib_data(self):
         roamon_verify_getter.fetch_rib_data(self.work_dir_path, self.rib_file_path)
 
-
     def fetch_vrps_data(self):
         roamon_verify_getter.fetch_vrps_data(self.vrps_file_path)
-
 
     def load_all_data(self):
         loaded_db = roamon_verify_checker.load_all_data(self.vrps_file_path, self.rib_file_path)
@@ -71,7 +68,6 @@ class RoamonAlertWatcher():
         self.db_controller.connect()
         print(json.dumps(self.db_controller.get_all_contact_info(), indent=4))
         self.db_controller.disconnect()
-
 
     def add_contact_info_to_list(self, contact_type, contact_info, prefixes, asns):
         self.db_controller.connect()
@@ -90,17 +86,17 @@ class RoamonAlertWatcher():
         # watched_asn_list = [contact["asn"] for contact in self.contact_list]
         # watched_prefix_list = [contact["prefix"] for contact in self.contact_list]
 
-
         # logger.debug("watched asn list {}".format(watched_asn_list))
         # watchしてるASNについてそれぞれが広告してる全てのprefixをROVする
         # asn_rov_result_struct_dict = roamon_verify_checker.check_specified_asns(self.vrps_data, self.rib_data, watched_asn_list)
         # watchしてるprefixについてROVする
         prefix_rov_result_struct_dict = roamon_verify_checker.check_specified_prefixes(self.vrps_data, self.rib_data,
-                                                                                ["192.168.30.0/24", "147.162.0.0/15"])
+                                                                                       ["192.168.30.0/24",
+                                                                                        "147.162.0.0/15"])
         logger.debug("fin ROV ...")
-        #TODO: こちらに切り替える
-        #全てのprefixについてROVする
-        #prefix_rov_result_struct_dict = roamon_verify_checker.check_all_prefixes_in_vrps(self.vrps_data, self.rib_data)
+        # TODO: こちらに切り替える
+        # 全てのprefixについてROVする
+        # prefix_rov_result_struct_dict = roamon_verify_checker.check_all_prefixes_in_vrps(self.vrps_data, self.rib_data)
 
         # -------DEBUG------
         logger.debug("INTO DB DEBUG")
@@ -111,12 +107,15 @@ class RoamonAlertWatcher():
         import datetime
         data_fetched_time = datetime.datetime.now()  # これはデータ取得時にセットすべき
         try:
-            self.db_controller.write_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(), data_fetched_time)
+            self.db_controller.write_prefix_rov_result_structs(prefix_rov_result_struct_dict.values(),
+                                                               data_fetched_time)
         except:
             import traceback
             traceback.print_exc()
         logger.debug("WRITE DB DUMMY CONTACT INFO")
-        self.db_controller.write_contact_info("slack", "https://hooks.slack.com/services/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", ["192.168.30.0/24", "147.162.0.0/15"], [201354,137])
+        self.db_controller.write_contact_info("slack",
+                                              "https://hooks.slack.com/services/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",
+                                              ["192.168.30.0/24", "147.162.0.0/15"], [201354, 137])
         print("-----HOGEHOGOE1-----")
         print(self.db_controller.pickup_rov_failed_contact_info_about_watched_prefix())
         print(self.db_controller.pickup_rov_failed_contact_info_about_watched_asn())
@@ -144,15 +143,17 @@ class RoamonAlertWatcher():
                 logger.debug(
                     "SEND MAIL TO {} watching object:".format(contact_dest))
                 self.mailer.send_mail(
-                                 contact_dest,
-                                 "ROA ERRROR!",
-                                 "ROA ERROR \n{}".format(json.dumps(rov_result_dict, sort_keys=True, indent=4, default=support_json_default)))
+                    contact_dest,
+                    "ROA ERRROR!",
+                    "ROA ERROR \n{}".format(
+                        json.dumps(rov_result_dict, sort_keys=True, indent=4, default=support_json_default)))
             # slack送信
             elif contact_type == "slack":
                 logger.debug(
                     "SEND SLACK MSG TO {} watching object:".format(contact_dest))
                 roamon_alert_slack.send_slack("ROA ERROR \n{}".format(json.dumps(rov_result_dict,
-                                                                                         sort_keys=True, indent=4, default=support_json_default)))
+                                                                                 sort_keys=True, indent=4,
+                                                                                 default=support_json_default)))
 
         logger.debug("start sending msg about wtached prefix...")
         rov_failed_entry_having_watched_prefix = self.db_controller.pickup_rov_failed_contact_info_about_watched_prefix()
@@ -163,10 +164,10 @@ class RoamonAlertWatcher():
         logger.debug("start sending msg about wtached asn...")
         rov_failed_entry_having_watched_asn = self.db_controller.pickup_rov_failed_contact_info_about_watched_asn()
         for contact_info, rov_info in rov_failed_entry_having_watched_asn.items():
-            logger.debug("sending {} {} {}...".format(contact_info[0], contact_info[1],  rov_info))
+            logger.debug("sending {} {} {}...".format(contact_info[0], contact_info[1], rov_info))
             send_alert(contact_info[0], contact_info[1], rov_info)
 
         logger.debug("fin sending msg.")
         self.db_controller.disconnect()
 
-        #self.db_controller.disconnect()
+        # self.db_controller.disconnect()

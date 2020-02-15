@@ -13,7 +13,6 @@ import logging
 import time
 from datetime import datetime, timedelta
 
-
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -23,13 +22,12 @@ class RoamonAlertDaemon():
         self.path_pid_lockfile = file_path_pid_lockfile
         self.log_file_path = log_path
         self.checker = checker
-        self.watch_interval = watch_interval # 分指定
+        self.watch_interval = watch_interval  # 分指定
 
         # self.work_dir_path = ""
         # self.vrps_file_path = ""
         # self.rib_file_path = ""
         # self.contact_list_file_path = ""
-
 
     # def init(self):
     #     # ファイルのフェッチ
@@ -41,7 +39,6 @@ class RoamonAlertDaemon():
     #
     #     # ロード
     #     self.checker.load_all_data()
-
 
     @classmethod
     def __start_daemon_with_func(cls, func, *args, logpath, pidpath, **kws):
@@ -94,7 +91,6 @@ class RoamonAlertDaemon():
         with dc:
             forever()
 
-
     def main_loop(self, kws=None):
         logger.debug("enter main_loop")
         # interval_min_fetch_rib = self.watch_interval
@@ -116,7 +112,7 @@ class RoamonAlertDaemon():
 
             logger.debug("end working in loop")
 
-            #　規定時間まつ
+            # 　規定時間まつ
             time.sleep(60 * self.watch_interval)
             logger.debug("end loop")
 
@@ -146,18 +142,16 @@ class RoamonAlertDaemon():
             # log_to_stdout('[INFO]', 'Sleep', w, 'seconds.')
             # time.sleep(w)
 
-
     def start(self):
         logger.debug("call start daemon!")
-        self.__start_daemon_with_func(self.main_loop, logpath=self.log_file_path, pidpath=self.path_pid_lockfile, kws=None)
-
+        self.__start_daemon_with_func(self.main_loop, logpath=self.log_file_path, pidpath=self.path_pid_lockfile,
+                                      kws=None)
 
     # TODO: デーモン停止時のPIDファイルの始末が正常にできているか確認 & 異常終了時のPIDファイルの始末はどうする？
     def stop(self):
         # PIDファイルがあるかどうか見る
         if not os.path.exists(self.path_pid_lockfile):
             logger.error("PID file for the daemon is not found at {}".format(self.path_pid_lockfile))
-
 
         pid = daemon.pidfile.PIDLockFile(self.path_pid_lockfile)
         # 起動中判定はどうやるのか不明
@@ -176,5 +170,3 @@ class RoamonAlertDaemon():
         # PIDファイルを始末
         logger.debug("releasing daemon process with PID file:{}...".format(self.path_pid_lockfile))
         pid.break_lock()
-
-
