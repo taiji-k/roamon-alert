@@ -1,79 +1,77 @@
-# roamon-alert
-## Current status
-動きはします  
+Roamon-alert is developed and maintained by JPNIC young dev team.
+
+## Documentation
+
+Roamon-alert is a managing tool for alerting mis-originating BGP routes with email and Slack API. This tool is intended for alerting to IP address holders who can update ROA to solve invalid results from ROV.
 
 ## Installation & quick start
-リポジトリのクローン
+
+To clone from GitHub:
 ```shell
 $ git clone https://github.com/taiji-k/roamon-alert.git
 ```
 
-### Run on Vagrant
-VagrantでVMを起動します。  
-(`roamon-alert/vagrant/Vagrantfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので **書き換えておいてください** )
+## Run in Vagrant
+
+Start VM in Vagrant:
 ```shell
 $ cd roamon-alert/vagrant/
 $ vagrant up && vagrant ssh
 ```
 
-VMのなかでテスト用SMTPサーバを起動します。  
-シェルを占有しちゃうのでtmuxとかで別な画面で起動するか、またはdocker-composeに`-d`オプションをつけデーモンモードで起動してください。  
-標準出力を見ていればメールが来たことがわかります。
+Run a SMTP server for testing:
+Shell's I/O will be used for the server. Use tmux or different terminal or launch docker-compose with '-d' option for daemon-mode.
+Standard output shows received emails.
 ```shell
 > $ cd roamon-alert
 > $ cd test/docker-mailhog
 > $ sudo docker-compose up
 ```
 
-VMのなかで、別なシェルでroamon-alertのデーモンを起動します  
+In the VM, start roamon-alert with different shell.
 ```shell
 > $ cd roamon-alert
 > $ sudo env "PATH=$PATH" python3 roamon_alert_controller.py daemon --start
 ```
 
-### Run on Docker
-Dockerを使って実行します  
-(`roamon-alert/docker/Dockerfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので **書き換えておいてください** )
+### Run on docker
+
 ```
 $ sudo docker build -t roamon-alert ./docker
 $ sudo docker run --rm -it roamon-alert /bin/bash
 >$ cd /roamon-alert
 ```
 
-注意点として、dockerコンテナの中からだとテスト用SMTPサーバのdockerコンテナを起動できないので、どうにかしてテスト用SMTPサーバを用意して通信できるようにしておく必要があります。
-(現状だと、異常検知していざ送信というときにSMTPサーバと通信できないと、もう一回データのダウンロードから始めようとしてしまいます)  
-(TODO: ここをどうにかする)  
- 
+In docker container, other docker used for SMTP server cannot be launched. You may need different SMTP server accessible from the roamon-alert docker container.
+(Currently, if alerting email is not sent correctly, the processes re-start from downloading.)
 
 ## Configuration
-ファイルの場所やSMTPサーバのなどをコンフィグファイルに書きます
 
- * ワーキングディレクトリ(RIBファイルのダウンロード先などになる)：`dir_path_data`
- * pyasnが直接読めるように変換後のBGP経路情報: `file_path_rib`
- * pyasnが直接読めるように変換後の検証済みROAのリスト: `file_path_vrps`
- 
- * 連絡先情報のJSON: `file_path_contact_list`
- * デーモンのログファイル: `log_path`
- * デーモンのPIDファイル: `pid_file_path`
- * SMTPサーバのアドレス: `smtp_server_address`
- * SMTPサーバのポート番号: `smtp_server_port`
- * 送信元メールアドレス: `sender_email_address`
- * チェック間隔: `watch_interval`
- 
- 
+Specify directory and SMTP server.
+
+* working directory (to put RIB files): `dir_path_data`
+* RIB file as pyasn readable format: `file_path_rib`
+* VRPs list as pyasn readable format: `file_path_vrps`
+
+* Contact list as JSON format: `file_path_contact_list`
+* daemon logfile: `log_path`
+* daemon PID file: `pid_file_path`
+* SMTP server address: `smtp_server_address`
+* SMTP server port: `smtp_server_port`
+* Sender email address: `sender_email_address`
+* Watch interval: `watch_interval`
+
 ## Usage
 
-### 連絡先追加
-例として、ASN 3333に関して異常があったときにemailでexample3333@example.comに連絡を送るように登録する
+### Add contact
+
+As an example, when INVALID found for AS 3333's announcing prefix, notification is sent via email to example3333@example.com.
 ```
 $ sudo python3 roamon_alert_controller.py add --asn 3333 --type email --dest example3333@example.com
 ```
 
-IP Prefixを指定し、それに関して異常があったときに通知する機能は未実装。
-
-### 連絡先一覧
-登録された連絡先一覧を表示。  
-フォーマットは以下。  
+### List contacts
+List format:
 `watched ASN | watched prefix | contact type | contact info`
 
 ```
@@ -85,19 +83,22 @@ $ sudo python3 roamon_alert_controller.py list
 135821  192.168.30.0/24 email   example327687@example.com   
 ```
 
-### デーモン起動
+### Running daemon
+
 ```
 $ sudo python3 roamon_alert_controller.py daemon --start 
 ```
 
-`/tmp/alertd.log`にログが出る。  
-1時間ごとにBGP経路情報(RouteViewsのRIBファイル)と検証済みROAをとってきて、中身をチェックする。  
-連絡先登録時に一緒にいれたASNやprefixに関して異常があれば対応する連絡先にメールやSlackを送る。  
- 
+Log file is `/tmp/alertd.log`.
+ROV is taken once a hour.
+If specified AS announcing prefix or specified prefix became INVALID, notification is sent via email or slack.
 
+### Stopping daemon
 
-### デーモン停止
 ```
 $ sudo python3 roamon_alert_controller.py daemon --stop
 ```
 
+## Thanks
+
+JPNIC roamon project is funded by Ministry of Internal Affairs and Communications, Japan (2019 Nov - 2020 Mar).
