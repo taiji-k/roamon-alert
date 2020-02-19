@@ -12,7 +12,6 @@ pyfiglet = "*"
 tqdm = "*"
 requests = "*"
 beautifulsoup4 = "*"
-pyasn = "*"
 slackweb = "*"
 
 [requires]

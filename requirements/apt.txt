@@ -1,0 +1,7 @@
+build-essential
+curl
+git
+locales
+python3.7
+python3-pip
+rsync
