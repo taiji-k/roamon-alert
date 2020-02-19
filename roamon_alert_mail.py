@@ -45,5 +45,8 @@ class MailSender():
             s.sendmail(fromaddr, toaddr, m.as_string())
             s.close()
 
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(worker())
+        try:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(worker())
+        except:
+            traceback.print_exc()

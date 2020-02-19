@@ -169,7 +169,7 @@ class RoamonAlertWatcher():
             elif contact_type == "slack":
                 logger.debug(
                     "SEND SLACK MSG TO {} watching object:".format(contact_dest))
-                roamon_alert_slack.send_slack("ROA ERROR \n{}".format(json.dumps(rov_result_dict,
+                roamon_alert_slack.send_slack(contact_dest, "ROA ERROR \n{}".format(json.dumps(rov_result_dict,
                                                                                  sort_keys=True, indent=4,
                                                                                  default=support_json_default)))
 
