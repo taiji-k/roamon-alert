@@ -11,8 +11,12 @@ netaddr = "*"
 pyfiglet = "*"
 tqdm = "*"
 requests = "*"
+pyasn = "*"
 beautifulsoup4 = "*"
 slackweb = "*"
 
 [requires]
 python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true

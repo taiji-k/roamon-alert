@@ -36,6 +36,7 @@ ENV LANG en_US.UTF-8
 # Install packages with pip
 ADD ./Pipfile Pipfile
 ADD ./Pipfile.lock Pipfile.lock
+RUN rm -r /usr/bin/python3 && ln -s /usr/bin/python3.7 /usr/bin/python3 && python3 -V
 RUN pip3 install --upgrade setuptools \
     && pip3 install pipenv \
     && pipenv install
