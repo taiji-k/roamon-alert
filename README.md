@@ -1,25 +1,29 @@
-# roamon-alert
-## Current status
-動きはします  
-あと昔のDB使ってない版とデータの構造が変わったため出力内容が変わりました  
+Roamon-alert is developed and maintained by JPNIC young dev team.
+
+## Documentation
+
+Roamon-alert is a managing tool for alerting mis-originating BGP routes with email and Slack API. This tool is intended for alerting to IP address holders who can update ROA to solve invalid results from ROV.
 
 ## Installation & quick start
-リポジトリのクローン
+
+To clone from GitHub:
 ```shell
 $ git clone https://github.com/taiji-k/roamon-alert.git
 ```
 
-### Run on Docker
-Dockerを使って実行します  
-(`roamon-alert/docker/Dockerfile`の中に、プライベートリポジトリにアクセスするためにgithubのusernameとpasswordを入れるとこがあるので **書き換えておいてください** )
+### Run on docker
+
 ```
 $ cd ./docker
 $ sudo docker-compose build --no-cache
 $ sudo docker-compose up
 ```
-DBサーバ、テスト用SMTPサーバ、roamon-alertを動かすサーバが起動します。  
-roamon-alertのサーバに接続してroamon-alertを使用しましょう。
 
+It starts DB server, SMTP test server, and roamon-alert server.
+
+(Currently, if alerting email is not sent correctly, the processes re-start from downloading.)
+
+Then, start to operate roamon-alert in the container.
 ```
 $ sudo docker exec -it roamon-alert  /bin/bash
 > /# cd roamon-alert
@@ -27,38 +31,39 @@ $ sudo docker exec -it roamon-alert  /bin/bash
 ```
 
 ## Configuration
-ファイルの場所やSMTPサーバのなどをコンフィグファイルに書きます
 
- * ワーキングディレクトリ(RIBファイルのダウンロード先などになる)：`dir_path_data`
- * pyasnが直接読めるように変換後のBGP経路情報: `file_path_rib`
- * pyasnが直接読めるように変換後の検証済みROAのリスト: `file_path_vrps`
- 
- * デーモンのログファイル: `log_path`
- * デーモンのPIDファイル: `pid_file_path`
- * SMTPサーバのアドレス: `smtp_server_address`
- * SMTPサーバのポート番号: `smtp_server_port`
- * 送信元メールアドレス: `sender_email_address`
- * チェック間隔: `watch_interval`
- 
- * DBサーバホスト名: `db_host`
- * DBサーバポート番号: `db_port`
- * DB名: `db_name`
- * DBユーザ名: `db_user_name`
- * DBパスワード `db_password`
- 
- 
+Specify directory and SMTP server, and DB server.
+
+* working directory (to put RIB files): `dir_path_data`
+* RIB file as pyasn readable format: `file_path_rib`
+* VRPs list as pyasn readable format: `file_path_vrps`
+
+* Contact list as JSON format: `file_path_contact_list`
+* daemon logfile: `log_path`
+* daemon PID file: `pid_file_path`
+* SMTP server address: `smtp_server_address`
+* SMTP server port: `smtp_server_port`
+* Sender email address: `sender_email_address`
+* Watch interval: `watch_interval`
+
+* DB server host name: `db_host`
+* DB server port number: `db_port`
+* DB name: `db_name`
+* DB user name: `db_user_name`
+* DB password: `db_password`
+
 ## Usage
 
-### 連絡先追加
-例として、ASN 3333か1234に関して異常があったときにemailでexample3333@example.comに連絡を送るように登録する
+### Add contact
+
+As an example, when INVALID found for AS 3333's announcing prefix, notification is sent via email to example3333@example.com.
 ```
 $ sudo python3 roamon_alert_controller.py add --asns 3333 1234 --type email --dest example3333@example.com
 ```
 
-### 連絡先一覧
-登録された連絡先一覧を表示。  
-フォーマットは以下。  
-`contact_info_ID | contact_type | contact_dest | watched_prefix | watched_asn`
+### List contacts
+List format:
+`contact_info_id | contact_type | contact_dest | watched_prefix | watched asn`
 
 ```
 $ sudo python3 roamon_alert_controller.py list
@@ -70,19 +75,22 @@ $ sudo python3 roamon_alert_controller.py list
 4       slack   https://hooks.slack.com/services/TBZC4xxxx   147.162.0.0/15  None  
 ```
 
-### デーモン起動
+### Running daemon
+
 ```
 $ sudo python3 roamon_alert_controller.py daemon --start 
 ```
 
-`/tmp/alertd.log`にログが出る。  
-1時間ごとにBGP経路情報(RouteViewsのRIBファイル)と検証済みROAをとってきて、中身をチェックする。  
-連絡先登録時に一緒にいれたASNやprefixに関して異常があれば対応する連絡先にメールやSlackを送る。  
- 
+Log file is `/tmp/alertd.log`.
+ROV is taken once a hour.
+If specified AS announcing prefix or specified prefix became INVALID, notification is sent via email or slack.
 
+### Stopping daemon
 
-### デーモン停止
 ```
 $ sudo python3 roamon_alert_controller.py daemon --stop
 ```
 
+## Thanks
+
+JPNIC roamon project is funded by Ministry of Internal Affairs and Communications, Japan (2019 Nov - 2020 Mar).

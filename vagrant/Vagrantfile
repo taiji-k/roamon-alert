@@ -103,11 +103,8 @@ Vagrant.configure("2") do |config|
     cargo install routinator
     routinator init --accept-arin-rpa
 
-    ########
-    ## YOU SHOULD CHANGE HERE!
-    ########
-    git clone $( echo https://USERNAME:PASSWORD@github.com/taiji-k/roamon-alert.git )
+    git clone $( echo https://github.com/taiji-k/roamon-alert.git )
     # roamon-diffをハイフンなしにリネームしてるのは、ハイフンつきだとpythonでimportできないから
-    cd roamon-alert && git clone $( echo https://USERNAME:PASSWORD@github.com/taiji-k/roamon-verify.git ) && mv roamon-verify roamon_verify
+    cd roamon-alert && git clone $( echo https://github.com/taiji-k/roamon-verify.git ) && mv roamon-verify roamon_verify
   SHELL
 end

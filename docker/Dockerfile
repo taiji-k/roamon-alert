@@ -17,10 +17,11 @@ RUN /bin/bash -c "source ~/.cargo/env ; routinator init --accept-arin-rpa"
 RUN /bin/bash -c "cat  ~/.cargo/env >> ~/.bashrc;"
 
 
-######
-## YOU SHOULD CHANGE THIS !
-######
-RUN git clone https://USERNAME:PASSWORD@github.com/taiji-k/roamon-alert.git
-
+RUN git clone https://github.com/taiji-k/roamon-alert.git
 # roamon-diffをハイフンなしにリネームしてるのは、ハイフンつきだとpythonでimportできないから
-RUN cd roamon-alert && git clone https://USERNAME:PASSWORD@github.com/taiji-k/roamon-verify.git && mv roamon-verify roamon_verify
+RUN cd roamon-alert && git clone https://github.com/taiji-k/roamon-verify.git && mv roamon-verify roamon_verify
+
+# FOR TEST
+#RUN git clone https://USERNAME:PASSWORD@github.com/taiji-k/roamon-alert.git --branch  feature-#14_make_docker_env
+## roamon-diffをハイフンなしにリネームしてるのは、ハイフンつきだとpythonでimportできないから
+#RUN cd roamon-alert && git clone https://USERNAME:PASSWORD@github.com/taiji-k/roamon-diff.git --branch  feature-#17_make_dokcker_env && mv roamon-diff roamon_verify
