@@ -187,6 +187,59 @@ class RoamonAlertDb():
 
         return sql_result
 
+    # 連絡先情報を全て & watched_prefixやwatched_asnも一緒に取得する。前の出力形式に合わせるため。
+    def get_all_contact_info_as_old_style(self):
+        if self.conn is None:
+            logger.error("connection is not established")
+            return
+
+        cur = self.conn.cursor()
+
+        # watched_prefixとなってるprefixについて、最新のROV結果がVALID以外(=失敗)してるやつがないか調べ、連絡先情報と結合して返す
+        cur.execute("""
+            SELECT *
+            FROM   (SELECT contact_informations.id,
+                           contact_informations.contact_type,
+                           contact_informations.contact_information,
+                           watched_prefixes.watched_prefix,
+                           NULL AS INTEGER
+                    FROM   contact_informations
+                           JOIN watched_prefixes
+                             ON contact_informations.id =
+                                watched_prefixes.contact_information_id
+                    UNION ALL
+                    SELECT contact_informations.id,
+                           contact_informations.contact_type,
+                           contact_informations.contact_information,
+                           NULL AS VARCHAR,
+                           watched_asns.watched_asn
+                    FROM   contact_informations
+                           JOIN watched_asns
+                             ON contact_informations.id =
+                                watched_asns.contact_information_id) AS
+                   sub
+            ORDER  BY id,
+                      watched_prefix; 
+          """, {
+            # "tab_contact": psycopg2.extensions.AsIs(self.__contact_info_destination_table_name),
+            # "tab_prefix": psycopg2.extensions.AsIs(self.__contact_info_watched_prefix_table_name),
+            # "tab_rov_results": psycopg2.extensions.AsIs(self.__rov_result_table_name),
+            # "tab_subquery_failed_rov_results": psycopg2.extensions.AsIs("failed_rov_results"),
+            # "prefix_col_in_tab_prefix": psycopg2.extensions.AsIs("watched_prefix"),
+            # "prefix_col_in_tab_rov_results": psycopg2.extensions.AsIs("prefix"),
+            # "timestamp_col_in_tab_rov_results": psycopg2.extensions.AsIs("data_fetched_at"),
+            # "concat_key_col_in_tab_prefix": psycopg2.extensions.AsIs("contact_information_id"),
+            # "key_col_in_tab_contact": psycopg2.extensions.AsIs("id"),
+            # "rov_result_col_in_tab_rov_results": psycopg2.extensions.AsIs("rov_status"),
+        })
+
+        sql_result = cur.fetchall()
+
+        self.conn.commit()
+        cur.close()
+
+        return sql_result
+
     # 連絡先情報を書き込む
     def write_contact_info(self, contact_type, contact_dest, watched_prefix_list, watched_asn_list):
         if self.conn is None:

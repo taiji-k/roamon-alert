@@ -66,7 +66,7 @@ def command_delete(args):
 
 # 連絡先のリストアップ
 def command_list(args):
-    watcher.print_conatct_lists()
+    watcher.print_contact_lists()
 
 
 # デーモンの開始と終了
