@@ -69,7 +69,11 @@ class RoamonAlertWatcher():
         # psycopg2が `could not receive data from server: Bad file descriptor`とかエラー出す。たぶんデーモン起動時に別スレッドに渡したりするせい？
         # だからいちいちDB接続 & 切断をしてる。
         self.db_controller.connect()
-        print(json.dumps(self.db_controller.get_all_contact_info_as_old_style(), indent=4))
+        #print(json.dumps(self.db_controller.get_all_contact_info_as_old_style(), indent=4))
+        for row in self.db_controller.get_all_contact_info_as_old_style():
+            for col in row:
+                print(col, end="\t")
+            print("")
         self.db_controller.disconnect()
 
     def add_contact_info_to_list(self, contact_type, contact_info, prefixes, asns):

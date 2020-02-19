@@ -58,19 +58,17 @@ $ sudo python3 roamon_alert_controller.py add --asns 3333 1234 --type email --de
 ### 連絡先一覧
 登録された連絡先一覧を表示。  
 フォーマットは以下。  
-`watched ASN | watched prefix | contact type | contact info`
+`contact_info_ID | contact_type | contact_dest | watched_prefix | watched_asn`
 
 ```
 $ sudo python3 roamon_alert_controller.py list
-3333    192.168.30.0/24 email   example3333@example.com
-196615  192.168.30.0/24 email   example196615@example.com       
-327687  192.168.30.0/24 email   example327687@example.com       
-201354  192.168.30.0/24 email   example196615@example.com       
-135821  192.168.30.0/24 email   example327687@example.com   
+1       email   example1@example.com                         None            1899    
+2       email   example2@example.com                         147.162.0.0/15  None    
+2       email   example2@example.com                         192.168.30.0/24 None         
+2       email   example2@example.com                         None            137
+3       email   example3@example.com                         None            327687  
+4       slack   https://hooks.slack.com/services/TBZC4xxxx   147.162.0.0/15  None  
 ```
-
-(NOTE: 上は過去のものであって現在はJSON形式で出ます & watched_prefixやasnが出ません.   
-TODO: ここの修正)
 
 ### デーモン起動
 ```
