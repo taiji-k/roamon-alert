@@ -36,8 +36,10 @@ In the VM, start roamon-alert with different shell.
 
 ### Run on docker
 
+Run the following commands at project root directory.
+
 ```
-$ sudo docker build -t roamon-alert ./docker
+$ sudo docker build -t roamon-alert -f ./docker/Dockerfile .
 $ sudo docker run --rm -it roamon-alert /bin/bash
 >$ cd /roamon-alert
 ```
