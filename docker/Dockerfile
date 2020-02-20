@@ -11,6 +11,8 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV DEBCONF_NOWARNINGS yes
 ENV TERM linux
 
+SHELL ["/bin/bash", "-c"]
+
 # Install packages with apt
 ADD ./requirements/apt.txt apt.txt
 RUN rm -rf /var/lib/apt/lists/* \
@@ -23,8 +25,8 @@ RUN apt -y --no-install-recommends install software-properties-common \
 
 # Install routinator
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-RUN /bin/bash -c "source ~/.cargo/env ; cargo install routinator" \
-    && /bin/bash -c "source ~/.cargo/env ; routinator init --accept-arin-rpa"
+RUN source ~/.cargo/env && cargo install routinator \
+    && routinator init --accept-arin-rpa && cat  ~/.cargo/env >> ~/.bashrc
 
 # Set the locale
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
