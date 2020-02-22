@@ -1,42 +1,55 @@
-FROM ubuntu
+FROM ubuntu:18.04
+# MAINTAINER name <e-mail@example.com>
 
-#ARG github-username=""
-#ARG github-password=""
+ARG username=""
+ARG password=""
 
-RUN apt update
-RUN apt install -y git python3 python3-pip wget curl
-RUN pip3 install netaddr pyfiglet tqdm pyasn beautifulsoup4 requests python-daemon slackweb
+RUN sed -i.bak -e "s%http://archive.ubuntu.com/ubuntu/%http://ftp.riken.go.jp/Linux/ubuntu/%g" /etc/apt/sources.list
 
-# Install docker
-#RUN apt install -y \
-#    apt-transport-https \
-#    ca-certificates \
-#    curl \
-#    software-properties-common
-#RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-#RUN add-apt-repository \
-#   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-#   $(lsb_release -cs) \
-#   stable"
-#RUN apt update
-#RUN apt install -y docker-ce
+# Suppress some useless errors appear when installaing packages with apt
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBCONF_NOWARNINGS yes
+ENV TERM linux
+
+SHELL ["/bin/bash", "-c"]
+
+# Install packages with apt
+ADD ./requirements/apt.txt apt.txt
+RUN rm -rf /var/lib/apt/lists/* \
+    && apt autoclean \
+    && apt update
+RUN apt -y --no-install-recommends install software-properties-common \
+    && apt-add-repository ppa:deadsnakes/ppa \
+    && xargs apt -y --no-install-recommends install < apt.txt \
+    && apt clean
 
 # Install routinator
-
-RUN apt update
-RUN apt install -y rsync build-essential
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-#RUN ls -a ~/
-#RUN ls -a ~/.cargo
-#RUN which source
-#RUN source ~/.cargo/env
-RUN /bin/bash -c "source ~/.cargo/env ; cargo install routinator"
-RUN /bin/bash -c "source ~/.cargo/env ; routinator init --accept-arin-rpa"
+RUN source ~/.cargo/env && cargo install routinator \
+    && routinator init --accept-arin-rpa && cat  ~/.cargo/env >> ~/.bashrc
+
+# Set the locale
+RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+ENV LANG en_US.UTF-8
+
+# Install packages with pip
+ADD ./Pipfile Pipfile
+ADD ./Pipfile.lock Pipfile.lock
+RUN rm -r /usr/bin/python3 && ln -s /usr/bin/python3.7 /usr/bin/python3 && python3 -V
+RUN pip3 install --upgrade setuptools \
+    && pip3 install pipenv \
+    && pipenv install
 
 
-RUN git clone https://github.com/taiji-k/roamon-alert.git
-# roamon-diffをハイフンなしにリネームしてるのは、ハイフンつきだとpythonでimportできないから
-RUN cd roamon-alert && git clone https://github.com/taiji-k/roamon-verify.git && mv roamon-verify roamon_verify
+# RUN git clone https://$username:$password@github.com/taiji-k/roamon-alert.git roamon-alert
+RUN git clone https://github.com/taiji-k/roamon-alert.git roamon-alert
+WORKDIR /roamon-alert
+# Renamed the default clone dir in order to be imported by Python.
+# RUN git clone https://$username:$password@github.com/taiji-k/roamon-verify.git roamn_verify
+RUN git clone https://github.com/taiji-k/roamon-verify.git roamn_verify
 
 # FOR TEST
 #RUN git clone https://USERNAME:PASSWORD@github.com/taiji-k/roamon-alert.git --branch  feature-#14_make_docker_env
