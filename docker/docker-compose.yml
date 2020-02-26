@@ -18,7 +18,9 @@ services:
 
   # roamon-alertを実行するやつ
   roamon-alert:
-    build: ./
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
     container_name: roamon-alert
     tty: true
     depends_on:

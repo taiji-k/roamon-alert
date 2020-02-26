@@ -16,11 +16,7 @@ $ git clone https://github.com/taiji-k/roamon-alert.git
 Run the following commands at project root directory.
 
 ```
-$ sudo docker build -t roamon-alert -f ./docker/Dockerfile .
-$ sudo docker run --rm -it roamon-alert /bin/bash
-># cd /roamon-alert
-># pipenv shell
-(roamon-alert) >#
+$ sudo docker-compose -f ./docker/docker-compose.yml up
 ```
 
 It starts DB server, SMTP test server, and roamon-alert server.
@@ -30,8 +26,9 @@ It starts DB server, SMTP test server, and roamon-alert server.
 Then, start to operate roamon-alert in the container.
 ```
 $ sudo docker exec -it roamon-alert  /bin/bash
-> /# cd roamon-alert
-> /# 
+># pipenv install
+># pipenv shell
+(roamon-alert) ># python3 roamon_alert_controller.py daemon --start
 ```
 
 ## Configuration

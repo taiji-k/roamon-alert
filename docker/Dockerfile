@@ -46,4 +46,4 @@ RUN git clone https://github.com/taiji-k/roamon-alert.git roamon-alert
 WORKDIR /roamon-alert
 # Renamed the default clone dir in order to be imported by Python.
 # RUN git clone https://$username:$password@github.com/taiji-k/roamon-verify.git roamn_verify
-RUN git clone https://github.com/taiji-k/roamon-verify.git roamn_verify
+RUN git clone https://github.com/taiji-k/roamon-verify.git roamon_verify
