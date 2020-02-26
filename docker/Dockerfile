@@ -1,9 +1,6 @@
 FROM ubuntu:18.04
 # MAINTAINER name <e-mail@example.com>
 
-ARG username=""
-ARG password=""
-
 RUN sed -i.bak -e "s%http://archive.ubuntu.com/ubuntu/%http://ftp.riken.go.jp/Linux/ubuntu/%g" /etc/apt/sources.list
 
 # Suppress some useless errors appear when installaing packages with apt
@@ -49,9 +46,4 @@ RUN git clone https://github.com/taiji-k/roamon-alert.git roamon-alert
 WORKDIR /roamon-alert
 # Renamed the default clone dir in order to be imported by Python.
 # RUN git clone https://$username:$password@github.com/taiji-k/roamon-verify.git roamn_verify
-RUN git clone https://github.com/taiji-k/roamon-verify.git roamn_verify
-
-# FOR TEST
-#RUN git clone https://USERNAME:PASSWORD@github.com/taiji-k/roamon-alert.git --branch  feature-#14_make_docker_env
-## roamon-diffをハイフンなしにリネームしてるのは、ハイフンつきだとpythonでimportできないから
-#RUN cd roamon-alert && git clone https://USERNAME:PASSWORD@github.com/taiji-k/roamon-diff.git --branch  feature-#17_make_dokcker_env && mv roamon-diff roamon_verify
+RUN git clone https://github.com/taiji-k/roamon-verify.git roamon_verify

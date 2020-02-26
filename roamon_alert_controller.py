@@ -26,7 +26,7 @@ import argparse
 import roamon_alert_watcher
 import roamon_alert_daemon
 import roamon_alert_mail
-import os
+import roamon_alert_db
 import logging
 from pyfiglet import Figlet
 import configparser
@@ -34,7 +34,6 @@ import configparser
 # ログ関係の設定 (適当)
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
 
 # コンフィグファイルのロード
 config = configparser.ConfigParser()
@@ -47,46 +46,52 @@ dir_path_data = config_roamon_verify["dir_path_data"]
 file_path_vrps = config_roamon_verify["file_path_vrps"]
 file_path_rib = config_roamon_verify["file_path_rib"]
 
-file_path_contact_list = config_roamon_alert["file_path_contact_list"]
-log_path = config_roamon_alert["log_path"] # "/tmp/alertd.log"
+# デーモンの設定
+log_path = config_roamon_alert["log_path"]  # "/tmp/alertd.log"
+pid_file_path = config_roamon_alert["pid_file_path"]  # "/var/run/alertd.pid"
 
-pid_file_path = config_roamon_alert["pid_file_path"]   # "/var/run/alertd.pid"
-
+# メール関連の設定
 smtp_server_address = config_roamon_alert["smtp_server_address"]
 smtp_server_port = int(config_roamon_alert["smtp_server_port"])
 sender_email_address = config_roamon_alert["sender_email_address"]
 
+# 監視間隔
 watch_interval = int(config_roamon_alert["watch_interval"])
+
+# DBの設定
+db_host = config_roamon_alert["db_host"]
+db_port = int(config_roamon_alert["db_port"])
+db_name = config_roamon_alert["db_name"]
+db_user_name = config_roamon_alert["db_user_name"]
+db_password = config_roamon_alert["db_password"]
 
 # ロゴの描画
 f = Figlet(font='slant')
 print(f.renderText('roamon-alert'))
 
 mailer = roamon_alert_mail.MailSender(smtp_server_address, smtp_server_port, sender_email_address)
-checker = roamon_alert_watcher.RoamonAlertWatcher(file_path_contact_list, dir_path_data, file_path_vrps, file_path_rib, mailer)
-# checker.init()
+db_controller = roamon_alert_db.RoamonAlertDb(db_host, db_port, db_name, db_user_name, db_password)
+watcher = roamon_alert_watcher.RoamonAlertWatcher(dir_path_data, file_path_vrps, file_path_rib,
+                                                  mailer, db_controller)
 
-# getサブコマンドの実際の処理を記述するコールバック関数
+
+# 連絡先追加の処理を記述するコールバック関数 (以下同じ)
 def command_add(args):
-    checker.add_contact_info_to_list(asn=args.asn, prefix=args.prefix, contact_type=args.type, contact_info=args.dest)
-    # いちいち保存すると遅い？
-    checker.save_contact_list()
+    watcher.add_contact_info_to_list(args.type, args.dest, args.prefixes, args.asns)
 
 
 def command_delete(args):
-    checker.delete_contact_info_from_list(asn=args.asn, prefix=args.prefix, contact_type=args.type, contact_info=args.dest)
-    # いちいち保存すると遅い？
-    checker.save_contact_list()
+    watcher.delete_contact_info_from_list(args.type, args.dest, args.prefixes, args.asns)
 
 
 # 連絡先のリストアップ
 def command_list(args):
-    checker.print_conatct_lists()
+    watcher.print_contact_lists()
 
 
 # デーモンの開始と終了
 def command_daemon(args):
-    alertd = roamon_alert_daemon.RoamonAlertDaemon(pid_file_path, log_path, checker, watch_interval)
+    alertd = roamon_alert_daemon.RoamonAlertDaemon(pid_file_path, log_path, watcher, watch_interval)
     # 起動
     if args.start:
         alertd.start()
@@ -106,22 +111,22 @@ parser = argparse.ArgumentParser(description='ROA - BGP Diff command !')
 subparsers = parser.add_subparsers()
 
 # add コマンドの parser を作成
-parser_add = subparsers.add_parser('add', help="see `get -h`. It's command to add contact info." )
-parser_add.add_argument('--asn', default="-1", help='specify watch ASN')
-parser_add.add_argument('--prefix', default="255.255.255.255", help='specify watch ip prefix')
+parser_add = subparsers.add_parser('add', help="see `get -h`. It's command to add contact info.")
+parser_add.add_argument('--asns', nargs="*", help='specify watch ASN')
+parser_add.add_argument('--prefixes', nargs="*", help='specify watch ip prefix')
 parser_add.add_argument('--type', default="email", help='specify contact type, such as email or slack.')
-parser_add.add_argument('--dest', default="DUMMY_DEST@example.com", help='specify contact dest, such as e-mail address or Slack info')
-# parser_add.add_argument('-p', '--path', default="/tmp", help='specify data dirctory')
+parser_add.add_argument('--dest', default="DUMMY_DEST@example.com",
+                        help='specify contact dest, such as e-mail address or Slack info')
 parser_add.set_defaults(handler=command_add)
 
 # delete コマンドの parser を作成
-parser_add = subparsers.add_parser('delete', help="see `get -h`. It's command to delete contact info." )
-parser_add.add_argument('--asn', default="-1", help='specify watch ASN')
-parser_add.add_argument('--prefix', default="255.255.255.255", help='specify watch ip prefix')
+parser_add = subparsers.add_parser('delete', help="see `get -h`. It's command to delete contact info.")
+parser_add.add_argument('--asns', nargs="*", help='specify watch ASN')
+parser_add.add_argument('--prefixes', nargs="*", help='specify watch ip prefix')
 parser_add.add_argument('--type', default="email", help='specify contact type, such as email or slack.')
-parser_add.add_argument('--dest', default="DUMMY_DEST@example.com", help='specify contact dest, such as e-mail address or Slack info')
+parser_add.add_argument('--dest', default="DUMMY_DEST@example.com",
+                        help='specify contact dest, such as e-mail address or Slack info')
 parser_add.set_defaults(handler=command_delete)
-
 
 # list コマンドの parser を作成
 parser_list = subparsers.add_parser('list', help="see `get -h`. It's command to list up contact info.")

@@ -7,3 +7,4 @@ python3.7-dev
 python3-pip
 rsync
 wget
+libpq-dev

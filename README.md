@@ -11,47 +11,29 @@ To clone from GitHub:
 $ git clone https://github.com/taiji-k/roamon-alert.git
 ```
 
-## Run in Vagrant
-
-Start VM in Vagrant:
-```shell
-$ cd roamon-alert/vagrant/
-$ vagrant up && vagrant ssh
-```
-
-Run a SMTP server for testing:
-Shell's I/O will be used for the server. Use tmux or different terminal or launch docker-compose with '-d' option for daemon-mode.
-Standard output shows received emails.
-```shell
-> $ cd roamon-alert
-> $ cd test/docker-mailhog
-> $ sudo docker-compose up
-```
-
-In the VM, start roamon-alert with different shell.
-```shell
-> $ cd roamon-alert
-> $ sudo env "PATH=$PATH" python3 roamon_alert_controller.py daemon --start
-```
-
 ### Run on docker
 
 Run the following commands at project root directory.
 
 ```
-$ sudo docker build -t roamon-alert -f ./docker/Dockerfile .
-$ sudo docker run --rm -it roamon-alert /bin/bash
-># cd /roamon-alert
-># pipenv shell
-(roamon-alert) >#
+$ sudo docker-compose -f ./docker/docker-compose.yml up
 ```
 
-In docker container, other docker used for SMTP server cannot be launched. You may need different SMTP server accessible from the roamon-alert docker container.
+It starts DB server, SMTP test server, and roamon-alert server.
+
 (Currently, if alerting email is not sent correctly, the processes re-start from downloading.)
+
+Then, start to operate roamon-alert in the container.
+```
+$ sudo docker exec -it roamon-alert  /bin/bash
+># pipenv install
+># pipenv shell
+(roamon-alert) ># python3 roamon_alert_controller.py daemon --start
+```
 
 ## Configuration
 
-Specify directory and SMTP server.
+Specify directory and SMTP server, and DB server.
 
 * working directory (to put RIB files): `dir_path_data`
 * RIB file as pyasn readable format: `file_path_rib`
@@ -65,6 +47,12 @@ Specify directory and SMTP server.
 * Sender email address: `sender_email_address`
 * Watch interval: `watch_interval`
 
+* DB server host name: `db_host`
+* DB server port number: `db_port`
+* DB name: `db_name`
+* DB user name: `db_user_name`
+* DB password: `db_password`
+
 ## Usage
 
 ### Add contact
@@ -76,15 +64,16 @@ $ sudo python3 roamon_alert_controller.py add --asn 3333 --type email --dest exa
 
 ### List contacts
 List format:
-`watched ASN | watched prefix | contact type | contact info`
+`contact_info_id | contact_type | contact_dest | watched_prefix | watched asn`
 
 ```
 $ sudo python3 roamon_alert_controller.py list
-3333    192.168.30.0/24 email   example3333@example.com
-196615  192.168.30.0/24 email   example196615@example.com       
-327687  192.168.30.0/24 email   example327687@example.com       
-201354  192.168.30.0/24 email   example196615@example.com       
-135821  192.168.30.0/24 email   example327687@example.com   
+1       email   example1@example.com                         None            1899    
+2       email   example2@example.com                         147.162.0.0/15  None    
+2       email   example2@example.com                         192.168.30.0/24 None         
+2       email   example2@example.com                         None            137
+3       email   example3@example.com                         None            327687  
+4       slack   https://hooks.slack.com/services/TBZC4xxxx   147.162.0.0/15  None  
 ```
 
 ### Running daemon
