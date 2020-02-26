@@ -13,10 +13,14 @@ $ git clone https://github.com/taiji-k/roamon-alert.git
 
 ### Run on docker
 
+Run the following commands at project root directory.
+
 ```
-$ cd ./docker
-$ sudo docker-compose build --no-cache
-$ sudo docker-compose up
+$ sudo docker build -t roamon-alert -f ./docker/Dockerfile .
+$ sudo docker run --rm -it roamon-alert /bin/bash
+># cd /roamon-alert
+># pipenv shell
+(roamon-alert) >#
 ```
 
 It starts DB server, SMTP test server, and roamon-alert server.
@@ -58,7 +62,7 @@ Specify directory and SMTP server, and DB server.
 
 As an example, when INVALID found for AS 3333's announcing prefix, notification is sent via email to example3333@example.com.
 ```
-$ sudo python3 roamon_alert_controller.py add --asns 3333 1234 --type email --dest example3333@example.com
+$ sudo python3 roamon_alert_controller.py add --asn 3333 --type email --dest example3333@example.com
 ```
 
 ### List contacts
