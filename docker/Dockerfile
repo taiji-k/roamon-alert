@@ -32,18 +32,14 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
 ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 
+# Clone repositories
+RUN git clone https://github.com/taiji-k/roamon-alert.git roamon-alert
+WORKDIR /roamon-alert
+# Renamed the default clone dir in order to be imported by Python.
+RUN git clone https://github.com/taiji-k/roamon-verify.git roamon_verify
+
 # Install packages with pip
-ADD ./Pipfile Pipfile
-ADD ./Pipfile.lock Pipfile.lock
 RUN rm -r /usr/bin/python3 && ln -s /usr/bin/python3.7 /usr/bin/python3 && python3 -V
 RUN pip3 install --upgrade setuptools \
     && pip3 install pipenv \
     && pipenv install
-
-
-# RUN git clone https://$username:$password@github.com/taiji-k/roamon-alert.git roamon-alert
-RUN git clone https://github.com/taiji-k/roamon-alert.git roamon-alert
-WORKDIR /roamon-alert
-# Renamed the default clone dir in order to be imported by Python.
-# RUN git clone https://$username:$password@github.com/taiji-k/roamon-verify.git roamn_verify
-RUN git clone https://github.com/taiji-k/roamon-verify.git roamon_verify
